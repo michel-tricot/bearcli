@@ -721,7 +721,7 @@ def search(
     ] = OutputFormat.table,
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
-    """Search notes by title, tags, and content (case-insensitive; --fuzzy for typo tolerance)."""
+    """Search notes by title, tags, and content."""
     db = _open_db(db_path)
     try:
         notes = db.list_notes(
