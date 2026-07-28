@@ -16,10 +16,13 @@ uv run bearcli list -n 5 # quick smoke test (needs Bear installed locally)
 uv run ruff format src/  # format (line length 120)
 uv run ruff check src/   # lint — must pass before committing
 uv run ty check src/     # type check — must pass before committing
+uv run pytest tests/ -q  # test suite — must pass before committing
 ```
 
-There is no test suite yet; changes are verified by running the CLI against the
-local Bear database. The database lives at
+Run `uv run pytest tests/` - the suite uses a synthetic Bear database
+(tests/conftest.py builds the real schema with fabricated data), so it needs
+no local Bear. Behavior changes still deserve a manual check against the real
+database. The database lives at
 `~/Library/Group Containers/9K33E3U3T4.net.shinyfrog.bear/Application Data/database.sqlite`;
 pass `--db` or set `BEAR_DB_PATH` to use a copy.
 
@@ -41,6 +44,7 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 - `src/bearcli/secrets.py` — detect-secrets-based scanning; export blocks on
   findings before writing anything (`--allow-secrets` overrides). Redact
   matches in output; never print the secret itself.
+- `src/bearcli/tui.py` — the interactive `browse` Textual app.
 - `src/bearcli/gitsync.py` — `export --push`: commit/merge/push convergence
   loop treating the destination repo as a one-way mirror (Bear wins in HEAD,
   overwritten edits stay in history, never force-pushes).
