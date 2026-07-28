@@ -97,6 +97,12 @@ that changes behavior updates the docs in the same commit; do not push and
 - TUI appearance changed (layout, colors, indicators, key bar) → regenerate
   the website screenshot: `uv run python scripts/render_tui_demo.py` and
   commit `docs/tui.svg`.
+- bearlib public API changed (functions, signatures, enums, errors,
+  behavior) → update `docs/BEARLIB.md`, including the **code sample for each
+  affected function** (every public function has one; add a sample for new
+  functions). `tests/test_bearlib_docs.py` compiles every sample and checks
+  imported names exist, but only you can keep the samples idiomatic and
+  reflective of the change.
 - Design decisions, Bear-schema learnings, or non-obvious internals → record
   them in `docs/IMPLEMENTATION.md`.
 - New modules or moved responsibilities → update the Layout section here.
