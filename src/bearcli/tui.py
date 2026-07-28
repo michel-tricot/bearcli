@@ -110,7 +110,7 @@ class BrowseApp(App):
         Binding("escape", "back_or_quit", "Quit"),
         Binding("/", "focus_search", "Search"),
         Binding("enter", "edit_selected", "Edit", show=True),
-        Binding("n,c", "new_note", "New"),
+        Binding("n,c", "new_note", "New", key_display="n/c"),
         Binding("t", "add_tag", "Tag"),
         Binding("T", "remove_tag", "Untag", show=False),
         Binding("o", "open_in_bear", "Open in Bear"),
