@@ -176,6 +176,7 @@
   <div class="demo-toggle">
     <button class="active" data-demo="cli">CLI</button>
     <button data-demo="tui">Terminal UI</button>
+    <button data-demo="kit">bearkit</button>
   </div>
   <div class="term" style="margin-top: 12px;">
     <div class="term-bar">
@@ -201,15 +202,29 @@
 <span class="p">❯</span> bearcli export ~/bear-notes --sync --redact-secrets --push
 Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</span>, 1919 unchanged, <span class="y">2 secrets redacted</span>, pushed</pre>
     <img id="demo-tui" src="tui.svg" alt="bearcli ui - search, edit, and tag notes in the terminal">
+  <pre id="demo-kit" style="display:none"><span class="c"># pip install bearcli  ->  import bearkit</span>
+<span class="y">from</span> bearkit <span class="y">import</span> Bear, BearWriteError
+
+<span class="y">with</span> Bear() <span class="y">as</span> bear:
+    <span class="y">for</span> result <span class="y">in</span> bear.search(<span class="g">"quarterly planing"</span>, fuzzy=<span class="cy">True</span>)[:<span class="cy">3</span>]:
+        print(<span class="g">f"{result.score:5.1f}  {result.note.title}"</span>)
+
+    note = bear.get_note(<span class="g">"c44d09dc"</span>)
+    <span class="y">try</span>:
+        bear.add_tag(note, <span class="g">"reviewed"</span>)
+        bear.open(note)
+    <span class="y">except</span> BearWriteError:
+        print(<span class="g">"Bear did not apply the change"</span>)</pre>
   </div>
   <script>
+    var demoPanes = { cli: "demo-cli", tui: "demo-tui", kit: "demo-kit" };
     document.querySelectorAll(".demo-toggle button").forEach(function (btn) {
       btn.addEventListener("click", function () {
         document.querySelectorAll(".demo-toggle button").forEach(function (b) { b.classList.remove("active"); });
         btn.classList.add("active");
-        var tui = btn.dataset.demo === "tui";
-        document.getElementById("demo-cli").style.display = tui ? "none" : "block";
-        document.getElementById("demo-tui").style.display = tui ? "block" : "none";
+        Object.keys(demoPanes).forEach(function (key) {
+          document.getElementById(demoPanes[key]).style.display = key === btn.dataset.demo ? "block" : "none";
+        });
       });
     });
   </script>
