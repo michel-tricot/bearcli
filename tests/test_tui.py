@@ -95,3 +95,56 @@ def test_tag_modal_suggestions():
             await pilot.press("escape")
 
     run(probe())
+
+
+def test_tag_modal_typing_does_not_filter_notes():
+    async def probe():
+        app = BearUI(list(NOTES))
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            results = app.query_one("#results", OptionList)
+            await pilot.press("t")
+            await pilot.pause()
+            await pilot.press(*"work")
+            await pilot.pause(0.4)
+            assert results.option_count == len(NOTES)  # note list untouched
+            await pilot.press("escape")
+
+    run(probe())
+
+
+def test_secret_indicator(populated):
+    populated.add_note("SEC00000-0000-0000-0000-000000000009", "Keys", text="# Keys\nkey AKIAIOSFODNN7EXAMPLE\n")
+    db = populated.open()
+    notes = db.list_notes(limit=None, with_text=True)
+
+    async def probe():
+        app = BearUI(notes, db_path=populated.path)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause(0.8)
+            assert app.secret_counts.get("SEC00000-0000-0000-0000-000000000009", 0) >= 1
+            option_texts = [
+                str(app.query_one("#results", OptionList).get_option_at_index(i).prompt) for i in range(len(notes))
+            ]
+            assert any("🔑" in t and "Keys" in t for t in option_texts)
+
+    run(probe())
+
+
+def test_rehydrate_picks_up_new_notes(populated):
+    db = populated.open()
+    notes = db.list_notes(limit=None, with_text=True)
+
+    async def probe():
+        app = BearUI(notes, db_path=populated.path)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            populated.add_note("NEW00000-0000-0000-0000-000000000010", "Fresh")
+            populated.conn.commit()
+            app._rehydrate()
+            await pilot.pause(0.8)
+            assert any(n.title == "Fresh" for n in app.notes)
+            results = app.query_one("#results", OptionList)
+            assert results.option_count == len(app.notes)
+
+    run(probe())

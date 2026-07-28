@@ -909,4 +909,4 @@ def ui(
         notes = db.list_notes(limit=None, tag=tag_filter, with_text=True)
     finally:
         db.close()
-    run_ui(notes, fuzzy=fuzzy, db_path=db_path)
+    run_ui(notes, fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter)

@@ -21,6 +21,7 @@ from bearcli import actions
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
 from bearcli.markdown import remove_tag_marker, tag_marker
 from bearcli.search import SearchResult, naive_search, search_notes
+from bearcli.secrets import scan_notes
 from bearcli.write import create_and_find
 
 HIGHLIGHT = "black on #dcb96a"
@@ -121,15 +122,23 @@ class BearUI(App):
         Binding("tab", "focus_next", "Switch pane", show=False),
     ]
 
-    def __init__(self, notes: list[Note], fuzzy: bool = False, db_path: Path = DEFAULT_DB_PATH):
+    def __init__(
+        self,
+        notes: list[Note],
+        fuzzy: bool = False,
+        db_path: Path = DEFAULT_DB_PATH,
+        tag_filter: str | None = None,
+    ):
         super().__init__()
         self.notes = notes
         self.fuzzy = fuzzy
         self.db_path = db_path
+        self.tag_filter = tag_filter
         self.search_query = ""
         self.shown: list[Note] = []
         self.editing: Note | None = None
         self.creating = False
+        self.secret_counts: dict[str, int] = {}
 
     # ── layout ────────────────────────────────────────────────────────────
 
@@ -168,6 +177,32 @@ class BearUI(App):
     def on_mount(self) -> None:
         self._show_results("", [SearchResult(note=n, snippet="") for n in self.notes])
         self.query_one("#results", OptionList).focus()
+        self._scan_secrets()
+
+    @work(exclusive=True, thread=True, group="scan")
+    def _scan_secrets(self) -> None:
+        counts: dict[str, int] = {}
+        for finding in scan_notes(self.notes):
+            counts[finding.note_id] = counts.get(finding.note_id, 0) + 1
+        self.call_from_thread(self._apply_secret_counts, counts)
+
+    def _apply_secret_counts(self, counts: dict[str, int]) -> None:
+        self.secret_counts = counts
+        self._run_filter(self.search_query)
+
+    @work(exclusive=True, thread=True, group="rehydrate")
+    def _rehydrate(self) -> None:
+        """Reload every note from the database (after a write, ours or Bear's)."""
+        db = BearDB(self.db_path)
+        try:
+            notes = db.list_notes(limit=None, tag=self.tag_filter, with_text=True)
+        finally:
+            db.close()
+        counts: dict[str, int] = {}
+        for finding in scan_notes(notes):
+            counts[finding.note_id] = counts.get(finding.note_id, 0) + 1
+        self.notes = notes
+        self.call_from_thread(self._apply_secret_counts, counts)
 
     def action_focus_search(self) -> None:
         query = self.query_one("#query", Input)
@@ -175,12 +210,14 @@ class BearUI(App):
         query.selection = query.selection.__class__(0, len(query.value))
 
     def on_input_changed(self, event: Input.Changed) -> None:
-        self._run_filter(event.value)
+        if event.input.id == "query":
+            self._run_filter(event.value)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        self.query_one("#results", OptionList).focus()
+        if event.input.id == "query":
+            self.query_one("#results", OptionList).focus()
 
-    @work(exclusive=True, thread=True)
+    @work(exclusive=True, thread=True, group="filter")
     def _run_filter(self, query: str) -> None:
         if not query.strip():
             results = [SearchResult(note=n, snippet="") for n in self.notes]
@@ -201,6 +238,8 @@ class BearUI(App):
             if note.tags:
                 label.append("  ")
                 label.append(_highlighted(" ".join(f"#{t}" for t in note.tags), query, "dim cyan"))
+            if self.secret_counts.get(note.id):
+                label.append("  🔑", "yellow")
             options.append(Option(label, id=note.id))
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
@@ -236,6 +275,8 @@ class BearUI(App):
             meta.append(f"tags     {', '.join(note.tags)}\n", "dim")
         if status:
             meta.append(f"status   {status}\n", "dim")
+        if secrets := self.secret_counts.get(note.id):
+            meta.append(f"secrets  🔑 {secrets} potential - careful when sharing\n", "yellow")
         meta.append("─" * 30 + "\n", "dim")
         body = "\n".join((note.text or "").splitlines()[:60])
         meta.append(_highlighted(body, self.search_query))
@@ -359,6 +400,7 @@ class BearUI(App):
                 self.notes.insert(0, created)
                 self.call_from_thread(self._run_filter, self.search_query)
                 self.call_from_thread(self.notify, f"Created {created.title!r}")
+                self.call_from_thread(self._rehydrate)
             else:
                 self.call_from_thread(self.notify, "Create failed - is Bear able to run?", severity="error")
         finally:
@@ -393,6 +435,7 @@ class BearUI(App):
             self.notes = [n for n in self.notes if n.id != note.id]
             self.call_from_thread(self._run_filter, self.search_query)
             self.call_from_thread(self.notify, f"{operation.capitalize()}ed {note.title!r}")
+            self.call_from_thread(self._rehydrate)
         else:
             self.call_from_thread(self.notify, f"{operation} failed - is Bear able to run?", severity="error")
 
@@ -421,18 +464,16 @@ class BearUI(App):
 
     def _finish_write(self, note_id: str, predicate, ok_message: str, operation: str) -> None:
         if self._wait(predicate):
-            db = BearDB(self.db_path)
-            try:
-                fresh = db.get_note(note_id)
-            finally:
-                db.close()
-            if fresh:
-                self.notes = [fresh if n.id == note_id else n for n in self.notes]
-            self.call_from_thread(self._run_filter, self.search_query)
             self.call_from_thread(self.notify, ok_message)
+            self.call_from_thread(self._rehydrate)
         else:
             self.call_from_thread(self.notify, f"{operation} failed - is Bear able to run?", severity="error")
 
 
-def run_ui(notes: list[Note], fuzzy: bool = False, db_path: Path = DEFAULT_DB_PATH) -> None:
-    BearUI(notes, fuzzy=fuzzy, db_path=db_path).run()
+def run_ui(
+    notes: list[Note],
+    fuzzy: bool = False,
+    db_path: Path = DEFAULT_DB_PATH,
+    tag_filter: str | None = None,
+) -> None:
+    BearUI(notes, fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter).run()
