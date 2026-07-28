@@ -20,7 +20,7 @@ from textual.widgets import Footer, Input, Label, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
 
 from bearcli import actions
-from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
+from bearcli.db import DEFAULT_DB_PATH, BearDB, Note, note_status
 from bearcli.markdown import remove_tag_marker, tag_marker
 from bearcli.search import SearchResult, naive_search, search_notes
 from bearcli.secrets import redaction_map, scan_notes
@@ -216,7 +216,7 @@ class BearUI(App):
             fresh = db.get_note(note_id)
         finally:
             db.close()
-        if fresh is None or fresh.trashed:
+        if fresh is None or fresh.trashed or fresh.archived:
             self.notes = [n for n in self.notes if n.id != note_id]
             self.secret_values.pop(note_id, None)
         else:
@@ -317,9 +317,7 @@ class BearUI(App):
         return sorted({tag for note in self.notes for tag in note.tags})
 
     def _preview(self, note: Note) -> Text:
-        status = ", ".join(
-            s for s, on in (("pinned", note.pinned), ("archived", note.archived), ("encrypted", note.encrypted)) if on
-        )
+        status = note_status(note).replace(",", ", ")
         meta = Text()
         meta.append(note.title + "\n", "bold")
         meta.append(f"id       {note.id}\n", "dim")

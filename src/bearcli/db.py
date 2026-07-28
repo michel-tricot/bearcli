@@ -52,6 +52,17 @@ class Note:
     attachments: list[Attachment] = field(default_factory=list)
 
 
+def note_status(note: Note) -> str:
+    """Comma-joined status flags, e.g. "pinned,archived"."""
+    flags = (
+        ("pinned", note.pinned),
+        ("encrypted", note.encrypted),
+        ("trashed", note.trashed),
+        ("archived", note.archived),
+    )
+    return ",".join(name for name, on in flags if on)
+
+
 def note_metadata(note: Note) -> dict:
     """The canonical serializable metadata for a note (everything but content)."""
     return {

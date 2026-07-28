@@ -18,7 +18,7 @@ from rich.markup import escape as rich_escape
 from rich.table import Table
 
 from bearcli import actions
-from bearcli.db import DEFAULT_DB_PATH, AmbiguousNoteId, BearDB, Note, note_metadata
+from bearcli.db import DEFAULT_DB_PATH, AmbiguousNoteId, BearDB, Note, note_metadata, note_status
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
 from bearcli.markdown import remove_tag_marker, rewrite_attachment_refs, tag_marker
@@ -61,16 +61,6 @@ def _note_to_dict(note: Note, with_text: bool = False) -> dict:
             for a in note.attachments
         ]
     return data
-
-
-def _note_status(note: Note) -> str:
-    flags = (
-        ("pinned", note.pinned),
-        ("encrypted", note.encrypted),
-        ("trashed", note.trashed),
-        ("archived", note.archived),
-    )
-    return ",".join(s for s, on in flags if on)
 
 
 def _resolve_attachments(note: Note) -> str:
@@ -168,7 +158,7 @@ def list_notes(
     if fmt is OutputFormat.text:
         for note in notes:
             modified = note.modified.isoformat() if note.modified else ""
-            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{_note_status(note)}\t{note.title}")
+            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{note_status(note)}\t{note.title}")
         return
 
     if not notes:
@@ -186,7 +176,7 @@ def list_notes(
             note.id,
             note.title,
             ", ".join(note.tags),
-            _note_status(note),
+            note_status(note),
             note.modified.strftime("%Y-%m-%d %H:%M") if note.modified else "",
         )
     console.print(table)
