@@ -103,6 +103,7 @@ with a list of the affected notes (`--allow-secrets` overrides).
 ```sh
 bearcli export ~/bear-backup
 bearcli export ~/bear-backup --sync          # only rewrite notes that changed
+bearcli export ~/bear-backup --redact-secrets  # secrets become [redacted: <rule>]
 
 # Mirror to a git repository (clone it first; use a *private* repo — these are
 # your notes). Bear is the source of truth: remote or manual edits are kept in
