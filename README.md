@@ -59,6 +59,14 @@ bearcli untag C44D09DC-... "work/ideas"      # remove a tag from a note
 
 # Open a note in the Bear app
 bearcli open C44D09DC-...
+
+# More write operations
+bearcli attach C44D09DC-... screenshot.png   # add an attachment (≤500 KB)
+bearcli rename C44D09DC-... "New title"
+bearcli get C44D09DC-... | sed 's/foo/bar/' | bearcli replace C44D09DC-...
+bearcli duplicate C44D09DC-... --title "Copy"
+bearcli rename-tag old-name new-name         # across all notes
+bearcli delete-tag old-name                  # across all notes (asks first)
 ```
 
 Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`).

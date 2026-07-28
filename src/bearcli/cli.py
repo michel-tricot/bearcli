@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 import sys
@@ -340,6 +341,25 @@ def _verify(ok: Callable[[], bool], success: str, failure: str) -> None:
         raise typer.Exit(1)
 
 
+def _create_and_report(db: BearDB, title: str, text: str | None, tags: list[str] | None) -> None:
+    started = datetime.now(UTC)
+    actions.create_note(title, text=text, tags=tags)
+
+    def find_created() -> Note | None:
+        candidates = db.list_notes(limit=10)
+        return next(
+            (n for n in candidates if n.title == title and n.created and n.created >= started - timedelta(seconds=5)),
+            None,
+        )
+
+    if actions.wait_for(lambda: find_created() is not None):
+        created = find_created()
+        console.print(f"Created note {created.id}" if created else "Created note")
+    else:
+        console.print("[red]Error:[/red] note did not appear in the Bear database; is Bear able to run?")
+        raise typer.Exit(1)
+
+
 @app.command()
 def create(
     title: Annotated[str, typer.Argument(help="Title of the new note.")],
@@ -350,26 +370,7 @@ def create(
     """Create a new note in Bear."""
     db = _open_db(db_path)
     try:
-        started = datetime.now(UTC)
-        actions.create_note(title, text=_text_or_stdin(text), tags=tags)
-
-        def find_created() -> Note | None:
-            candidates = db.list_notes(limit=10)
-            return next(
-                (
-                    n
-                    for n in candidates
-                    if n.title == title and n.created and n.created >= started - timedelta(seconds=5)
-                ),
-                None,
-            )
-
-        if actions.wait_for(lambda: find_created() is not None):
-            created = find_created()
-            console.print(f"Created note {created.id}" if created else "Created note")
-        else:
-            console.print("[red]Error:[/red] note did not appear in the Bear database; is Bear able to run?")
-            raise typer.Exit(1)
+        _create_and_report(db, title, _text_or_stdin(text), tags)
     finally:
         db.close()
 
@@ -453,12 +454,15 @@ def tags(
         OutputFormat,
         typer.Option("--format", "-f", help="Output format: table, json, or text (tab-separated: count, tag)."),
     ] = OutputFormat.table,
+    include_empty: Annotated[
+        bool, typer.Option("--all", "-a", help="Include empty tags (Bear keeps them hidden after their last note).")
+    ] = False,
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """List all tags with their note counts."""
     db = _open_db(db_path)
     try:
-        all_tags = db.list_tags()
+        all_tags = db.list_tags(include_empty=include_empty)
     finally:
         db.close()
 
@@ -558,3 +562,165 @@ def open_note(
         db.close()
     actions.open_note(note.id, new_window=new_window)
     console.print(f"Opened note {note.id} in Bear")
+
+
+MAX_ATTACH_BYTES = 500_000  # the file travels base64-encoded inside a URL; macOS caps arg size at ~1 MB
+
+
+@app.command()
+def attach(
+    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
+    file: Annotated[Path, typer.Argument(help="File to attach (appended at the end of the note).")],
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Attach a file to a note."""
+    if not file.is_file():
+        console.print(f"[red]Error:[/red] {file} is not a file")
+        raise typer.Exit(1)
+    data = file.read_bytes()
+    if len(data) > MAX_ATTACH_BYTES:
+        console.print(
+            f"[red]Error:[/red] {file.name} is {len(data)} bytes; attachments are limited to "
+            f"{MAX_ATTACH_BYTES} bytes (the file is passed base64-encoded through a URL)"
+        )
+        raise typer.Exit(1)
+    db = _open_db(db_path)
+    try:
+        note = _require_note(db, note_id)
+        before = len(note.attachments)
+        actions.add_file(note.id, file.name, base64.b64encode(data).decode())
+        _verify(
+            lambda: (n := db.get_note(note.id)) is not None and len(n.attachments) > before,
+            f"Attached {file.name} to note {note.id}",
+            "attachment did not appear; is Bear able to run?",
+        )
+    finally:
+        db.close()
+
+
+@app.command()
+def rename(
+    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
+    new_title: Annotated[str, typer.Argument(help="New title for the note.")],
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Change a note's title (first line), keeping the body."""
+    db = _open_db(db_path)
+    try:
+        note = _require_note(db, note_id)
+        if note.text is None:
+            console.print(f"[red]Error:[/red] note {note.id} is encrypted; cannot rename")
+            raise typer.Exit(1)
+        head, sep, body = note.text.partition("\n")
+        if head.startswith("# "):
+            new_text = f"# {new_title}{sep}{body}"
+        else:
+            new_text = f"# {new_title}\n{note.text}"
+        actions.add_text(note.id, new_text, mode="replace_all")
+        _verify(
+            lambda: (n := db.get_note(note.id)) is not None and n.title == new_title,
+            f"Renamed note {note.id} to {new_title!r}",
+            "title did not change; is Bear able to run?",
+        )
+    finally:
+        db.close()
+
+
+@app.command()
+def replace(
+    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
+    text: Annotated[str | None, typer.Option("--text", help="New body (reads stdin if piped).")] = None,
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Replace a note's body with new text, keeping the title. Destructive."""
+    body = _text_or_stdin(text)
+    if body is None:
+        console.print("[red]Error:[/red] provide --text or pipe content on stdin")
+        raise typer.Exit(2)
+    db = _open_db(db_path)
+    try:
+        before = _require_note(db, note_id)
+        actions.add_text(before.id, body, mode="replace")
+        _verify(
+            lambda: (
+                (n := db.get_note(before.id)) is not None
+                and n.modified is not None
+                and (before.modified is None or n.modified > before.modified)
+            ),
+            f"Replaced body of note {before.id}",
+            "note was not modified; is Bear able to run?",
+        )
+    finally:
+        db.close()
+
+
+@app.command()
+def duplicate(
+    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
+    title: Annotated[str | None, typer.Option("--title", help="Title for the copy (default: '<title> copy').")] = None,
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Create a copy of a note (text and inline tags; attachments are not copied)."""
+    db = _open_db(db_path)
+    try:
+        note = _require_note(db, note_id)
+        if note.text is None:
+            console.print(f"[red]Error:[/red] note {note.id} is encrypted; cannot duplicate")
+            raise typer.Exit(1)
+        new_title = title or f"{note.title} copy"
+        head, _, body = note.text.partition("\n")
+        text_body = body if head.startswith("# ") else note.text
+        _create_and_report(db, new_title, text_body, None)
+        if note.attachments:
+            console.print(f"[yellow]Note:[/yellow] {len(note.attachments)} attachment(s) were not copied")
+    finally:
+        db.close()
+
+
+@app.command("rename-tag")
+def rename_tag(
+    name: Annotated[str, typer.Argument(help="Existing tag name.")],
+    new_name: Annotated[str, typer.Argument(help="New tag name.")],
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Rename a tag across all notes."""
+    db = _open_db(db_path)
+    try:
+        existing = {t.lower() for t, _ in db.list_tags()}
+        if name.lower() not in existing:
+            console.print(f"[red]Error:[/red] no tag named {name!r}")
+            raise typer.Exit(1)
+        actions.rename_tag(name, new_name)
+        _verify(
+            lambda: new_name.lower() in {t.lower() for t, _ in db.list_tags()},
+            f"Renamed tag {name!r} to {new_name!r}",
+            "tag was not renamed; is Bear able to run?",
+        )
+    finally:
+        db.close()
+
+
+@app.command("delete-tag")
+def delete_tag(
+    name: Annotated[str, typer.Argument(help="Tag to delete from all notes.")],
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip the confirmation prompt.")] = False,
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Delete a tag from every note that has it."""
+    db = _open_db(db_path)
+    try:
+        counts = {t.lower(): c for t, c in db.list_tags(include_empty=True)}
+        if name.lower() not in counts:
+            console.print(f"[red]Error:[/red] no tag named {name!r}")
+            raise typer.Exit(1)
+        if not yes:
+            typer.confirm(f"Remove tag '{name}' from {counts[name.lower()]} note(s)?", abort=True)
+        actions.delete_tag(name)
+        # Bear keeps an empty tag row behind, so verify the count reaches zero.
+        _verify(
+            lambda: dict((t.lower(), c) for t, c in db.list_tags(include_empty=True)).get(name.lower(), 0) == 0,
+            f"Deleted tag {name!r}",
+            "tag was not deleted; is Bear able to run?",
+        )
+    finally:
+        db.close()

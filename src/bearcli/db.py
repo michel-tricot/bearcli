@@ -95,9 +95,14 @@ class BearDB:
         ).fetchall()
         return [r["ZTITLE"] for r in rows]
 
-    def list_tags(self) -> list[tuple[str, int]]:
-        """All tags with their note counts (excluding trashed/deleted notes)."""
+    def list_tags(self, include_empty: bool = False) -> list[tuple[str, int]]:
+        """All tags with their note counts (excluding trashed/deleted notes).
+
+        Bear keeps tag rows around after their last note is untagged (the app
+        hides them), so empty tags are excluded unless include_empty is set.
+        """
         table, note_col, tag_col = self._tags_join
+        having = "" if include_empty else "HAVING COUNT(n.Z_PK) > 0"
         rows = self.conn.execute(
             f"""
             SELECT t.ZTITLE, COUNT(n.Z_PK)
@@ -106,6 +111,7 @@ class BearDB:
             LEFT JOIN ZSFNOTE n
                 ON n.Z_PK = j.{note_col} AND n.ZTRASHED = 0 AND n.ZPERMANENTLYDELETED = 0
             GROUP BY t.Z_PK
+            {having}
             ORDER BY t.ZTITLE
             """
         ).fetchall()

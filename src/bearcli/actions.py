@@ -37,6 +37,18 @@ def add_text(note_id: str, text: str, mode: str = "append") -> None:
     call_bear("add-text", id=note_id, text=text, mode=mode, open_note="no", show_window="no")
 
 
+def add_file(note_id: str, filename: str, file_b64: str) -> None:
+    call_bear("add-file", id=note_id, filename=filename, file=file_b64, mode="append", open_note="no", show_window="no")
+
+
+def rename_tag(name: str, new_name: str) -> None:
+    call_bear("rename-tag", name=name, new_name=new_name, show_window="no")
+
+
+def delete_tag(name: str) -> None:
+    call_bear("delete-tag", name=name, show_window="no")
+
+
 def open_note(note_id: str, new_window: bool = False) -> None:
     call_bear("open-note", foreground=True, id=note_id, new_window="yes" if new_window else "no")
 
