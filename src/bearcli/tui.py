@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from rich.console import Group, RenderableType
-from rich.markdown import Markdown
+from rich.markdown import Heading, Markdown
 from rich.segment import Segment
 from rich.style import Style
 from rich.table import Table as RichTable
@@ -30,6 +30,19 @@ from bearcli.secrets import redaction_map, scan_notes
 
 HIGHLIGHT = "black on #dcb96a"
 SECRET_STYLE = "black on #ff9999"
+
+
+class _LeftHeading(Heading):
+    """Left-aligned headings; Rich centers them (and boxes h1) by default."""
+
+    def __rich_console__(self, console, options):
+        text = self.text
+        text.justify = "left"
+        yield text
+
+
+class _LeftMarkdown(Markdown):
+    elements = {**Markdown.elements, "heading_open": _LeftHeading}
 
 
 class _StyledMatches:
@@ -404,7 +417,7 @@ class BearUI(App):
                 (word, HIGHLIGHT, False) for word in self.search_query.split() if len(word) >= 2
             ]
             rules += [(value, SECRET_STYLE, True) for value in self.secret_values.get(note.id, {})]
-            body: RenderableType = Markdown(source)
+            body: RenderableType = _LeftMarkdown(source)
             if rules:
                 body = _StyledMatches(body, rules)
             return Group(meta, body)
