@@ -118,8 +118,8 @@ class BearUI(App):
         Binding("T", "remove_tag", "Untag", show=False),
         Binding("o", "open_in_bear", "Open in Bear"),
         Binding("r", "refresh", "Refresh", show=False),
-        Binding("a", "archive_note", "Archive", show=False),
-        Binding("d", "trash_note", "Trash", show=False),
+        Binding("a", "archive_note", "Archive"),
+        Binding("d", "trash_note", "Trash"),
         Binding("ctrl+s", "save_edit", "Save to Bear"),
         Binding("tab", "focus_next", "Switch pane", show=False),
     ]
@@ -273,7 +273,7 @@ class BearUI(App):
             if has_secret:
                 badge.append(" 🚨")
             if badge:
-                badge.append("  ")
+                badge.append("\u00a0\u00a0")  # NBSPs: right-justify strips plain trailing spaces
             row = RichTable.grid(expand=True)
             row.add_column(ratio=1, no_wrap=True, overflow="ellipsis")
             row.add_column(justify="right", no_wrap=True)
