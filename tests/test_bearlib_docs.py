@@ -42,3 +42,22 @@ def test_pure_samples_run():
     assert pure
     for block in pure:
         exec(compile(block, "BEARLIB.md pure block", "exec"), {})
+
+
+def test_samples_pass_project_lint_and_format(tmp_path):
+    import subprocess
+
+    paths = []
+    for i, block in enumerate(blocks()):
+        p = tmp_path / f"sample_{i}.py"
+        p.write_text(block)
+        paths.append(str(p))
+    root = str(DOC.parent.parent)
+    for args in (["check", "--no-cache"], ["format", "--check"]):
+        result = subprocess.run(
+            ["uv", "run", "ruff", *args, "--config", f"{root}/pyproject.toml", *paths],
+            capture_output=True,
+            text=True,
+            cwd=root,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
