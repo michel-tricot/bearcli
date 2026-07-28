@@ -126,7 +126,7 @@ def test_secret_indicator(populated):
             option_texts = [
                 str(app.query_one("#results", OptionList).get_option_at_index(i).prompt) for i in range(len(notes))
             ]
-            assert any("🤫" in t and "Keys" in t for t in option_texts)
+            assert any("🚨" in t and "Keys" in t for t in option_texts)
 
     run(probe())
 
@@ -178,4 +178,4 @@ def test_encrypted_note_preview_message(populated):
     app = BearUI(notes)
     vault = next(n for n in notes if n.title == "Vault")
     preview = str(app._preview(vault))
-    assert "encrypted" in preview.lower() and "open it there" in preview
+    assert "encrypted" in preview.lower() and "directly in Bear" in preview
