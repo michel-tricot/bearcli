@@ -25,6 +25,10 @@ from bearcli.export import export_notes
 from bearcli.search import naive_search, search_notes
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True)
+note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=True)
+tag_app = typer.Typer(help="List and manage tags.", no_args_is_help=True)
+app.add_typer(note_app, name="note")
+app.add_typer(tag_app, name="tag")
 console = Console()
 
 
@@ -118,7 +122,7 @@ def _parse_date(value: str | None, option: str) -> datetime | None:
         raise typer.Exit(2) from None
 
 
-@app.command("list")
+@note_app.command("list")
 def list_notes(
     limit: Annotated[int, typer.Option("--limit", "-n", help="Maximum number of notes.")] = 20,
     tag: Annotated[
@@ -205,7 +209,7 @@ def list_notes(
     console.print(table)
 
 
-@app.command()
+@note_app.command()
 def get(
     note_id: Annotated[str, typer.Argument(help="Note identifier (UUID from `bearcli list`).")],
     meta: Annotated[bool, typer.Option("--meta", help="Print metadata frontmatter before the content.")] = False,
@@ -359,7 +363,7 @@ def _create_and_report(db: BearDB, title: str, text: str | None, tags: list[str]
         raise typer.Exit(1)
 
 
-@app.command()
+@note_app.command()
 def create(
     title: Annotated[str, typer.Argument(help="Title of the new note.")],
     text: Annotated[str | None, typer.Option("--text", help="Note body (reads stdin if piped).")] = None,
@@ -374,7 +378,7 @@ def create(
         db.close()
 
 
-@app.command()
+@note_app.command()
 def append(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     text: Annotated[str | None, typer.Option("--text", help="Text to add (reads stdin if piped).")] = None,
@@ -403,7 +407,7 @@ def append(
         db.close()
 
 
-@app.command()
+@note_app.command()
 def trash(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     db_path: DbPathOption = DEFAULT_DB_PATH,
@@ -425,7 +429,7 @@ def trash(
         db.close()
 
 
-@app.command()
+@note_app.command()
 def archive(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     db_path: DbPathOption = DEFAULT_DB_PATH,
@@ -447,7 +451,7 @@ def archive(
         db.close()
 
 
-@app.command()
+@tag_app.command("list")
 def tags(
     fmt: Annotated[
         OutputFormat,
@@ -490,7 +494,7 @@ def _has_tag(note: Note, name: str) -> bool:
     return name.lower() in (t.lower() for t in note.tags)
 
 
-@app.command()
+@note_app.command()
 def tag(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     name: Annotated[str, typer.Argument(help="Tag to add (without the leading #).")],
@@ -513,7 +517,7 @@ def tag(
         db.close()
 
 
-@app.command()
+@note_app.command()
 def untag(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     name: Annotated[str, typer.Argument(help="Tag to remove (without the leading #).")],
@@ -547,7 +551,7 @@ def untag(
         db.close()
 
 
-@app.command("open")
+@note_app.command("open")
 def open_note(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     new_window: Annotated[bool, typer.Option("--new-window", "-w", help="Open in a separate window.")] = False,
@@ -566,7 +570,7 @@ def open_note(
 MAX_ATTACH_BYTES = 500_000  # the file travels base64-encoded inside a URL; macOS caps arg size at ~1 MB
 
 
-@app.command()
+@note_app.command()
 def attach(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     file: Annotated[Path, typer.Argument(help="File to attach (appended at the end of the note).")],
@@ -597,7 +601,7 @@ def attach(
         db.close()
 
 
-@app.command()
+@note_app.command()
 def rename(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     new_title: Annotated[str, typer.Argument(help="New title for the note.")],
@@ -625,7 +629,7 @@ def rename(
         db.close()
 
 
-@app.command()
+@note_app.command()
 def replace(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     text: Annotated[str | None, typer.Option("--text", help="New body (reads stdin if piped).")] = None,
@@ -653,7 +657,7 @@ def replace(
         db.close()
 
 
-@app.command("rename-tag")
+@tag_app.command("rename")
 def rename_tag(
     name: Annotated[str, typer.Argument(help="Existing tag name.")],
     new_name: Annotated[str, typer.Argument(help="New tag name.")],
@@ -676,7 +680,7 @@ def rename_tag(
         db.close()
 
 
-@app.command("delete-tag")
+@tag_app.command("delete")
 def delete_tag(
     name: Annotated[str, typer.Argument(help="Tag to delete from all notes.")],
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip the confirmation prompt.")] = False,
@@ -702,7 +706,7 @@ def delete_tag(
         db.close()
 
 
-@app.command()
+@note_app.command()
 def search(
     query: Annotated[str, typer.Argument(help="Search terms, matched against titles, tags, and text.")],
     fuzzy: Annotated[bool, typer.Option("--fuzzy", help="Typo-tolerant matching, ranked by score.")] = False,
@@ -769,3 +773,26 @@ def search(
             row.append(r.note.modified.strftime("%Y-%m-%d %H:%M") if r.note.modified else "")
         table.add_row(*row)
     console.print(table)
+
+
+@tag_app.command("notes")
+def tag_notes(
+    name: Annotated[str, typer.Argument(help="Tag name (includes nested sub-tags).")],
+    limit: Annotated[int, typer.Option("--limit", "-n", help="Maximum number of notes.")] = 20,
+    all_notes: Annotated[bool, typer.Option("--all", "-a", help="No limit (overrides --limit).")] = False,
+    fmt: Annotated[
+        OutputFormat,
+        typer.Option("--format", "-f", help="Output format: table, json, or text."),
+    ] = OutputFormat.table,
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """List the notes carrying a tag."""
+    list_notes(limit=limit, tag=name, all_notes=all_notes, fmt=fmt, db_path=db_path)
+
+
+# Top-level aliases for the most-used commands (hidden from --help).
+app.command("list", hidden=True)(list_notes)
+app.command("search", hidden=True)(search)
+app.command("get", hidden=True)(get)
+app.command("open", hidden=True)(open_note)
+app.command("create", hidden=True)(create)

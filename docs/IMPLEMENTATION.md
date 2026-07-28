@@ -70,9 +70,12 @@ touched.
 
 ## CLI design (`cli.py`)
 
-- `list` / `get` / `export`. `--db` (env `BEAR_DB_PATH`) is per-subcommand
-  rather than a top-level option, deliberately: with the env var covering
-  "set it once", trailing-position ergonomics win.
+- Commands are grouped gh-style into `note` and `tag` sub-apps (plus
+  top-level `export`); `list`, `search`, `get`, `open`, and `create` keep
+  hidden top-level aliases for ergonomics.
+- `--db` (env `BEAR_DB_PATH`) is per-subcommand rather than a top-level
+  option, deliberately: with the env var covering "set it once",
+  trailing-position ergonomics win.
 - Output formats: `table` (Rich, human), `json` (full data, ISO dates),
   `text` (TSV: id, modified, tags, status, title — title last because it can
   contain spaces). Machine formats bypass Rich entirely.

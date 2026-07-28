@@ -25,10 +25,12 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 
 ## Layout
 
-- `src/bearcli/cli.py` — Typer app (commands: `list`, `get`, `export`,
-  `create`, `append`, `trash`, `archive`, `tags`, `tag`, `untag`, `open`,
-  `attach`, `rename`, `replace`, `rename-tag`, `delete-tag`, `search`). All
-  presentation (Rich tables, JSON/text formats, spinner) lives here.
+- `src/bearcli/cli.py` — Typer app, grouped into `note` (list, get, search,
+  create, append, replace, rename, attach, trash, archive, open, tag, untag)
+  and `tag` (list, notes, rename, delete) sub-apps plus top-level `export`;
+  the most-used commands (list, search, get, open, create) have hidden
+  top-level aliases. All presentation (Rich tables, JSON/text formats,
+  spinner) lives here.
 - `src/bearcli/actions.py` — write actions via Bear's x-callback-url scheme.
   No database access; fire-and-forget `open -g bear://...` calls.
 - `src/bearcli/db.py` — database layer. Opens SQLite in read-only URI mode,
