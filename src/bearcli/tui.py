@@ -235,7 +235,8 @@ class KeyBar(Horizontal):
 
 HELP_ROWS = [
     ("Navigate", ""),
-    ("↑ ↓", "move through the note list"),
+    ("↑ or k", "previous note"),
+    ("↓ or j", "next note"),
     ("/", "focus search"),
     ("tab", "switch pane"),
     ("1 / 2 / 3", "notes / archive / trash view"),
@@ -314,6 +315,8 @@ class BearUI(App):
         Binding("a", "archive_note", "Archive"),
         Binding("d", "trash_note", "Trash"),
         Binding("r", "refresh", "Refresh", show=False),
+        Binding("j", "cursor_down", "Next note", show=False),
+        Binding("k", "cursor_up", "Previous note", show=False),
         Binding("ctrl+s", "save_edit", "Save to Bear"),
         # TUI controls (right of the footer)
         Binding("/", "focus_search", "Search"),
@@ -378,6 +381,8 @@ class BearUI(App):
             "refresh",
             "switch_view",
             "focus_next",
+            "cursor_down",
+            "cursor_up",
         }
         if self.edit_mode and action in browse_only:
             return False
@@ -679,6 +684,14 @@ class BearUI(App):
 
     def action_help(self) -> None:
         self.push_screen(HelpScreen())
+
+    def action_cursor_down(self) -> None:
+        if len(self.screen_stack) == 1:
+            self.query_one("#results", OptionList).action_cursor_down()
+
+    def action_cursor_up(self) -> None:
+        if len(self.screen_stack) == 1:
+            self.query_one("#results", OptionList).action_cursor_up()
 
     def action_refresh(self) -> None:
         self._set_list_loading(True)
