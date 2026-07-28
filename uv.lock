@@ -19,7 +19,7 @@ wheels = [
 
 [[package]]
 name = "bearcli"
-version = "1.6.2"
+version = "1.6.3"
 source = { editable = "." }
 dependencies = [
     { name = "bearkit" },
@@ -50,7 +50,7 @@ dev = [
 
 [[package]]
 name = "bearkit"
-version = "1.6.2"
+version = "1.6.3"
 source = { editable = "packages/bearkit" }
 dependencies = [
     { name = "detect-secrets" },
