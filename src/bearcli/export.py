@@ -7,6 +7,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 from urllib.parse import quote
 
 from bearcli.db import BearDB, Note
@@ -130,7 +131,12 @@ def _rewrite_refs(note: Note) -> str:
     return text
 
 
-def export_notes(db: BearDB, dest: Path, sync: bool = False) -> ExportResult:
+def export_notes(
+    db: BearDB,
+    dest: Path,
+    sync: bool = False,
+    progress: Callable[[str], None] | None = None,
+) -> ExportResult:
     """Write every non-trashed note as dest/<slug>/README.md plus attachments/.
 
     With sync=True, notes whose id and modified timestamp match the existing
@@ -141,6 +147,11 @@ def export_notes(db: BearDB, dest: Path, sync: bool = False) -> ExportResult:
     dest.mkdir(parents=True, exist_ok=True)
     result = ExportResult()
 
+    def report(message: str) -> None:
+        if progress is not None:
+            progress(message)
+
+    report("Reading notes from Bear…")
     summaries = db.list_notes(limit=None, include_archived=True)
     # Stable ordering so duplicate-title slugs get the same -2/-3 suffixes each run.
     summaries.sort(key=lambda n: (n.title.lower(), n.id))
@@ -164,7 +175,8 @@ def export_notes(db: BearDB, dest: Path, sync: bool = False) -> ExportResult:
             }
         )
 
-    for summary in summaries:
+    for position, summary in enumerate(summaries, start=1):
+        report(f"[{position}/{len(summaries)}] {summary.title}")
         if summary.encrypted:
             result.skipped_encrypted += 1
             add_entry(summary, None, False)
@@ -209,6 +221,7 @@ def export_notes(db: BearDB, dest: Path, sync: bool = False) -> ExportResult:
         add_entry(note, f"{slug}/", attach_dir.exists())
 
     # Remove directories for notes that were deleted in Bear or whose slug changed.
+    report("Cleaning up removed notes…")
     for stale in dest.iterdir():
         if not stale.is_dir() or stale.name in used_slugs:
             continue
@@ -217,6 +230,7 @@ def export_notes(db: BearDB, dest: Path, sync: bool = False) -> ExportResult:
         shutil.rmtree(stale)
         result.removed += 1
 
+    report("Writing index…")
     index_path = dest / "README.md"
     if index_path.exists() and _parse_frontmatter(index_path).get("generated-by") != "bearcli":
         result.index_skipped = True

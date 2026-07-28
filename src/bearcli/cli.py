@@ -12,6 +12,7 @@ from urllib.parse import quote
 import typer
 from rich import box
 from rich.console import Console
+from rich.markup import escape as rich_escape
 from rich.table import Table
 
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
@@ -309,7 +310,10 @@ def export(
     """Export all notes as markdown files with frontmatter and attachments."""
     db = _open_db(db_path)
     try:
-        result = export_notes(db, dest, sync=sync)
+        with console.status("Exporting…", spinner="dots") as status:
+            result = export_notes(
+                db, dest, sync=sync, progress=lambda msg: status.update(rich_escape(msg))
+            )
     finally:
         db.close()
 
