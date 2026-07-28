@@ -122,7 +122,7 @@ def test_secret_indicator(populated):
         app = BearUI(notes, db_path=populated.path)
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause(0.8)
-            assert app.secret_counts.get("SEC00000-0000-0000-0000-000000000009", 0) >= 1
+            assert len(app.secret_values.get("SEC00000-0000-0000-0000-000000000009", [])) >= 1
             from rich.console import Console
 
             console = Console(width=100)
@@ -172,7 +172,7 @@ def test_refresh_note_updates_single_entry(populated):
             await pilot.pause(0.8)
             fresh = next(n for n in app.notes if n.id.startswith("AAAA1111"))
             assert "AKIA" in fresh.text
-            assert app.secret_counts.get(fresh.id, 0) >= 1
+            assert len(app.secret_values.get(fresh.id, [])) >= 1
 
     run(probe())
 
