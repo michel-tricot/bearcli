@@ -135,6 +135,16 @@ defaults to Bear's standard location and can be overridden with `--db` or the
 `BEAR_DB_PATH` environment variable. Encrypted notes are listed but their
 content cannot be read.
 
+## Agent skill
+
+An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
+teaching AI agents (Claude Code, etc.) how to use bearcli ships in
+[`skills/bear-notes`](skills/bear-notes/SKILL.md):
+
+```sh
+cp -r skills/bear-notes ~/.claude/skills/   # or a project's .claude/skills/
+```
+
 ## Development
 
 ```sh
