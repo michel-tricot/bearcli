@@ -289,8 +289,9 @@ for f in report:
 
 ### `ScanReport.redact(note)` and friends
 
-`redact(note)` returns the note's text with every detected value replaced by
-`[redacted: <rule>]`. `has(note_id)` and `for_note(note_id)` answer per-note
+`redact(note)` returns a copy of the note's text with every detected value
+replaced by `[redacted: <rule>]` - the note itself is never modified, so use
+the return value. `has(note_id)` and `for_note(note_id)` answer per-note
 questions without touching raw values; `redact_text(text)` redacts arbitrary
 text (e.g. after rewriting links) using every finding in the report.
 
@@ -302,7 +303,8 @@ notes = bear.list_notes(limit=None)
 report = scan_notes(notes)
 for n in notes:
     if report.has(n.id):
-        print(report.redact(n))
+        safe = report.redact(n)  # n.text is untouched; share `safe` instead
+        print(safe)
 ```
 
 ## Markdown - `bearkit.markdown`
