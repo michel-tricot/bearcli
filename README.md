@@ -34,6 +34,7 @@ bearcli search "quarterly report"  # search titles, tags, and content
 bearcli get <note-id>              # print a note's markdown
 bearcli create "Idea" --tag inbox  # create a note
 bearcli export ~/bear-backup       # export everything as markdown folders
+bearcli ui                         # full Bear client in the terminal
 ```
 
 ## Commands
@@ -59,6 +60,15 @@ bearcli open C44D09DC-...                    # open in the Bear app
 bearcli ui                                   # Bear in the terminal: search, edit, tag
 bearcli stats                                # counts, words, top tags, notes per year
 ```
+
+### Terminal UI
+
+`bearcli ui` is a full Bear client in the terminal: the note list with live
+filtering on the left, preview and inline markdown editor on the right.
+`/` search - `Enter` edit - `n`/`c` new note - `t`/`T` tag/untag (with
+autocompletion) - `o` open in Bear - `a` archive - `d` trash - `r` reload.
+Notes with detected secrets are marked ⚠; encrypted notes show 🔒 and keep
+their content in Bear.
 
 ### Search
 
