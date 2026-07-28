@@ -1,98 +1,40 @@
-"""Typer CLI for reading notes from the Bear note app."""
+"""Commands operating on notes (the `note` group)."""
 
 from __future__ import annotations
 
 import base64
 import json
-import sys
-from collections.abc import Callable
-from datetime import datetime
-from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich import box
-from rich.console import Console
-from rich.markup import escape as rich_escape
 from rich.table import Table
 
 from bearcli import actions
-from bearcli.db import DEFAULT_DB_PATH, AmbiguousNoteId, BearDB, Note, note_metadata, note_status
-from bearcli.export import export_notes
-from bearcli.gitsync import GitError, export_and_push
+from bearcli.cli.common import (
+    DbPathOption,
+    OnlyFilter,
+    OutputFormat,
+    _note_to_dict,
+    _open_db,
+    _parse_date,
+    _require_note,
+    _text_or_stdin,
+    _verify,
+    console,
+    note_app,
+)
+from bearcli.db import DEFAULT_DB_PATH, BearDB, Note, note_status
 from bearcli.markdown import remove_tag_marker, rewrite_attachment_refs, tag_marker
 from bearcli.search import naive_search, search_notes
-from bearcli.secrets import SecretFinding, redact_text, redaction_map, scan_notes
+from bearcli.secrets import redact_text, redaction_map, scan_notes
 from bearcli.write import create_and_find
-
-app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
-note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=True)
-tag_app = typer.Typer(help="List and manage tags.", no_args_is_help=True)
-app.add_typer(note_app, name="note")
-app.add_typer(tag_app, name="tag")
-console = Console()
-
-
-class OutputFormat(StrEnum):
-    table = "table"
-    json = "json"
-    text = "text"
-
-
-class OnlyFilter(StrEnum):
-    pinned = "pinned"
-    encrypted = "encrypted"
-    trashed = "trashed"
-    archived = "archived"
-
-
-def _note_to_dict(note: Note, with_text: bool = False) -> dict:
-    data = note_metadata(note)
-    if with_text:
-        data["text"] = note.text
-        data["attachments"] = [
-            {
-                "filename": a.filename,
-                "path": str(a.path),
-                "size": a.size,
-                "exists": a.exists,
-            }
-            for a in note.attachments
-        ]
-    return data
 
 
 def _resolve_attachments(note: Note) -> str:
     """Rewrite attachment links to the files' absolute paths on disk."""
     return rewrite_attachment_refs(note, lambda att: str(att.path))
-
-
-DbPathOption = Annotated[
-    Path,
-    typer.Option("--db", envvar="BEAR_DB_PATH", help="Path to the Bear SQLite database."),
-]
-
-
-def _open_db(path: Path) -> BearDB:
-    try:
-        return BearDB(path)
-    except FileNotFoundError as exc:
-        console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(1) from None
-
-
-def _parse_date(value: str | None, option: str) -> datetime | None:
-    if value is None:
-        return None
-    try:
-        return datetime.fromisoformat(value)
-    except ValueError:
-        console.print(
-            f"[red]Error:[/red] invalid date for {option}: {value!r} "
-            "(expected ISO format, e.g. 2026-07-01 or 2026-07-01T14:30)"
-        )
-        raise typer.Exit(2) from None
 
 
 @note_app.command("list")
@@ -265,130 +207,6 @@ def get(
     print(text)
 
 
-def _report_secrets(findings: list[SecretFinding]) -> None:
-    table = Table(box=box.ROUNDED, header_style="bold")
-    table.add_column("Note", overflow="ellipsis", max_width=30)
-    table.add_column("ID", style="dim", no_wrap=True)
-    table.add_column("Rule", style="yellow")
-    table.add_column("Line", justify="right")
-    table.add_column("Match", style="red")
-    for f in findings:
-        table.add_row(f.note_title, f.note_id, f.rule, str(f.line), f.excerpt)
-    console.print(table)
-    notes = len({f.note_id for f in findings})
-    console.print(
-        f"[red]Export blocked:[/red] {len(findings)} potential secret(s) in {notes} note(s). "
-        "Move them somewhere safe (or into an encrypted note), re-run with --redact-secrets "
-        "to export with placeholders, or with --allow-secrets to export as-is."
-    )
-
-
-@app.command()
-def export(
-    dest: Annotated[Path, typer.Argument(help="Destination directory for the markdown files.")],
-    sync: Annotated[
-        bool,
-        typer.Option(
-            "--sync",
-            help="Only rewrite notes that changed since the last export instead of everything.",
-        ),
-    ] = False,
-    push: Annotated[
-        bool,
-        typer.Option(
-            "--push",
-            help="Treat DEST as a git clone: commit the export and push. Bear is the source of "
-            "truth — remote or manual edits are kept in history but overwritten in HEAD.",
-        ),
-    ] = False,
-    allow_secrets: Annotated[
-        bool,
-        typer.Option("--allow-secrets", help="Export even if the secret scan finds potential credentials."),
-    ] = False,
-    redact_secrets: Annotated[
-        bool,
-        typer.Option(
-            "--redact-secrets",
-            help="Export with detected secrets replaced by a [redacted: <rule>] placeholder "
-            "(notes in Bear are untouched).",
-        ),
-    ] = False,
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """Export all notes as markdown files with frontmatter and attachments."""
-    if allow_secrets and redact_secrets:
-        console.print("[red]Error:[/red] --allow-secrets and --redact-secrets are mutually exclusive")
-        raise typer.Exit(2)
-    db = _open_db(db_path)
-    try:
-        redactions: dict[str, dict[str, str]] | None = None
-        if not allow_secrets:
-            with console.status("Scanning notes for secrets…", spinner="dots"):
-                candidates = db.list_notes(limit=None, include_archived=True, with_text=True)
-                findings = scan_notes(candidates)
-            if findings and not redact_secrets:
-                _report_secrets(findings)
-                raise typer.Exit(1)
-            if findings:
-                redactions = redaction_map(findings)
-        with console.status("Exporting…", spinner="dots") as status:
-            update = lambda msg: status.update(rich_escape(msg))  # noqa: E731
-            if push:
-                try:
-                    result, outcome = export_and_push(db, dest, sync=sync, progress=update, redactions=redactions)
-                except GitError as exc:
-                    console.print(f"[red]Error:[/red] {exc}")
-                    raise typer.Exit(1) from None
-            else:
-                result = export_notes(db, dest, sync=sync, progress=update, redactions=redactions)
-    finally:
-        db.close()
-
-    parts = [f"{result.written} written"]
-    if push:
-        parts.append(outcome)
-    if sync:
-        parts.append(f"{result.unchanged} unchanged")
-    if result.removed:
-        parts.append(f"{result.removed} removed")
-    if result.skipped_encrypted:
-        parts.append(f"{result.skipped_encrypted} encrypted skipped")
-    if result.index_updated:
-        parts.append("index updated")
-    if redactions:
-        secrets_count = sum(len(v) for v in redactions.values())
-        parts.append(f"{secrets_count} secret(s) redacted in {len(redactions)} note(s)")
-    console.print(f"Exported to {dest}: " + ", ".join(parts))
-
-
-def _text_or_stdin(text: str | None) -> str | None:
-    if text is None and not sys.stdin.isatty():
-        return sys.stdin.read()
-    return text
-
-
-def _require_note(db: BearDB, note_id: str) -> Note:
-    try:
-        note = db.get_note(note_id)
-    except AmbiguousNoteId as exc:
-        console.print(f"[red]Error:[/red] note id prefix {exc.prefix!r} matches several notes:")
-        for full_id, title in exc.matches:
-            console.print(f"  {full_id}  {title}")
-        raise typer.Exit(1) from None
-    if note is None:
-        console.print(f"[red]Error:[/red] no note with id {note_id!r}")
-        raise typer.Exit(1)
-    return note
-
-
-def _verify(ok: Callable[[], bool], success: str, failure: str) -> None:
-    if actions.wait_for(ok):
-        console.print(success)
-    else:
-        console.print(f"[red]Error:[/red] {failure}")
-        raise typer.Exit(1)
-
-
 def _create_and_report(db: BearDB, title: str, text: str | None, tags: list[str] | None) -> None:
     created = create_and_find(db, title, text, tags)
     if created is None:
@@ -483,40 +301,6 @@ def archive(
         )
     finally:
         db.close()
-
-
-@tag_app.command("list")
-def tags(
-    fmt: Annotated[
-        OutputFormat,
-        typer.Option("--format", "-f", help="Output format: table, json, or text (tab-separated: count, tag)."),
-    ] = OutputFormat.table,
-    include_empty: Annotated[
-        bool, typer.Option("--all", "-a", help="Include empty tags (Bear keeps them hidden after their last note).")
-    ] = False,
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """List all tags with their note counts."""
-    db = _open_db(db_path)
-    try:
-        all_tags = db.list_tags(include_empty=include_empty)
-    finally:
-        db.close()
-
-    if fmt is OutputFormat.json:
-        print(json.dumps([{"tag": t, "notes": c} for t, c in all_tags], indent=2, ensure_ascii=False))
-        return
-    if fmt is OutputFormat.text:
-        for t, c in all_tags:
-            print(f"{c}\t{t}")
-        return
-
-    table = Table(box=box.ROUNDED, header_style="bold")
-    table.add_column("Tag", style="cyan")
-    table.add_column("Notes", justify="right")
-    for t, c in all_tags:
-        table.add_row(t, str(c))
-    console.print(table)
 
 
 def _has_tag(note: Note, name: str) -> bool:
@@ -681,55 +465,6 @@ def replace(
         db.close()
 
 
-@tag_app.command("rename")
-def rename_tag(
-    name: Annotated[str, typer.Argument(help="Existing tag name.")],
-    new_name: Annotated[str, typer.Argument(help="New tag name.")],
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """Rename a tag across all notes."""
-    db = _open_db(db_path)
-    try:
-        existing = {t.lower() for t, _ in db.list_tags()}
-        if name.lower() not in existing:
-            console.print(f"[red]Error:[/red] no tag named {name!r}")
-            raise typer.Exit(1)
-        actions.rename_tag(name, new_name)
-        _verify(
-            lambda: new_name.lower() in {t.lower() for t, _ in db.list_tags()},
-            f"Renamed tag {name!r} to {new_name!r}",
-            "tag was not renamed; is Bear able to run?",
-        )
-    finally:
-        db.close()
-
-
-@tag_app.command("delete")
-def delete_tag(
-    name: Annotated[str, typer.Argument(help="Tag to delete from all notes.")],
-    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip the confirmation prompt.")] = False,
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """Delete a tag from every note that has it."""
-    db = _open_db(db_path)
-    try:
-        counts = {t.lower(): c for t, c in db.list_tags(include_empty=True)}
-        if name.lower() not in counts:
-            console.print(f"[red]Error:[/red] no tag named {name!r}")
-            raise typer.Exit(1)
-        if not yes:
-            typer.confirm(f"Remove tag '{name}' from {counts[name.lower()]} note(s)?", abort=True)
-        actions.delete_tag(name)
-        # Bear keeps an empty tag row behind, so verify the count reaches zero.
-        _verify(
-            lambda: dict((t.lower(), c) for t, c in db.list_tags(include_empty=True)).get(name.lower(), 0) == 0,
-            f"Deleted tag {name!r}",
-            "tag was not deleted; is Bear able to run?",
-        )
-    finally:
-        db.close()
-
-
 @note_app.command()
 def search(
     query: Annotated[str, typer.Argument(help="Search terms, matched against titles, tags, and text.")],
@@ -797,106 +532,3 @@ def search(
             row.append(r.note.modified.strftime("%Y-%m-%d %H:%M") if r.note.modified else "")
         table.add_row(*row)
     console.print(table)
-
-
-# Top-level aliases for the most-used commands, shown in their own help panel.
-def _alias(name: str, target: str, func: Callable) -> None:
-    summary = (func.__doc__ or "").strip().splitlines()[0]
-    app.command(name, help=f"{summary} (alias for `bearcli {target}`)", rich_help_panel="Shortcuts")(func)
-
-
-_alias("list", "note list", list_notes)
-_alias("search", "note search", search)
-_alias("get", "note get", get)
-_alias("open", "note open", open_note)
-_alias("create", "note create", create)
-
-
-@app.command()
-def stats(
-    fmt: Annotated[
-        OutputFormat,
-        typer.Option("--format", "-f", help="Output format: table or json."),
-    ] = OutputFormat.table,
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """Show statistics about the note library."""
-    db = _open_db(db_path)
-    try:
-        notes = db.list_notes(limit=None, include_trashed=True, include_archived=True, with_text=True)
-        tag_counts = db.list_tags()
-        attachment_count, attachment_bytes = db.attachment_stats()
-    finally:
-        db.close()
-
-    active = [n for n in notes if not n.trashed and not n.archived]
-    by_year: dict[str, int] = {}
-    for n in notes:
-        if not n.trashed and n.created:
-            year = str(n.created.year)
-            by_year[year] = by_year.get(year, 0) + 1
-
-    data = {
-        "notes": len(notes),
-        "active": len(active),
-        "archived": sum(1 for n in notes if n.archived and not n.trashed),
-        "trashed": sum(1 for n in notes if n.trashed),
-        "pinned": sum(1 for n in notes if n.pinned and not n.trashed),
-        "encrypted": sum(1 for n in notes if n.encrypted and not n.trashed),
-        "words": sum(len((n.text or "").split()) for n in notes if not n.trashed),
-        "tags": len(tag_counts),
-        "attachments": attachment_count,
-        "attachment_bytes": attachment_bytes,
-        "notes_by_year": dict(sorted(by_year.items())),
-        "top_tags": [{"tag": t, "notes": c} for t, c in sorted(tag_counts, key=lambda tc: -tc[1])[:10]],
-    }
-
-    if fmt is OutputFormat.json:
-        print(json.dumps(data, indent=2, ensure_ascii=False))
-        return
-
-    table = Table(box=box.ROUNDED, show_header=False, width=44)
-    table.add_column(style="bold")
-    table.add_column(justify="right")
-    table.add_row("Notes", str(data["notes"]))
-    table.add_row("  active", str(data["active"]))
-    table.add_row("  archived", str(data["archived"]))
-    table.add_row("  trashed", str(data["trashed"]))
-    table.add_row("  pinned", str(data["pinned"]))
-    table.add_row("  encrypted", str(data["encrypted"]))
-    table.add_row("Words", f"{data['words']:,}")
-    table.add_row("Tags", str(data["tags"]))
-    table.add_row("Attachments", f"{attachment_count} ({attachment_bytes / 1_000_000:.1f} MB)")
-    console.print(table)
-
-    if data["top_tags"]:
-        tag_table = Table(box=box.ROUNDED, header_style="bold", width=44)
-        tag_table.add_column("Top tags", style="cyan")
-        tag_table.add_column("Notes", justify="right")
-        for entry in data["top_tags"]:
-            tag_table.add_row(str(entry["tag"]), str(entry["notes"]))
-        console.print(tag_table)
-
-    year_table = Table(box=box.ROUNDED, header_style="bold", width=44)
-    year_table.add_column("Created", style="cyan")
-    year_table.add_column("Notes", justify="right")
-    for year, count in data["notes_by_year"].items():
-        year_table.add_row(year, str(count))
-    console.print(year_table)
-
-
-@app.command()
-def ui(
-    fuzzy: Annotated[bool, typer.Option("--fuzzy", help="Typo-tolerant ranked filtering.")] = False,
-    tag_filter: Annotated[str | None, typer.Option("--tag", "-t", help="Restrict to notes with this tag.")] = None,
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """Bear in the terminal: search, edit, create, tag, and organize notes."""
-    from bearcli.tui import run_ui
-
-    db = _open_db(db_path)
-    try:
-        notes = db.list_notes(limit=None, tag=tag_filter, with_text=True)
-    finally:
-        db.close()
-    run_ui(notes, fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter)
