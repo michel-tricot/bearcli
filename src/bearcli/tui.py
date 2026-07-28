@@ -268,13 +268,13 @@ class BearUI(App):
         self.shown = [r.note for r in results]
         options = []
         for note in self.shown:
+            has_secret = bool(self.secret_values.get(note.id))
             date = note.modified.strftime("%Y-%m-%d") if note.modified else " " * 10
             label = Text.assemble((date, "dim"), "  ")
-            label.append(_highlighted(note.title, query, "bold"))
+            label.append(_highlighted(note.title, query, "bold red" if has_secret else "bold"))
             if note.tags:
                 label.append("  ")
                 label.append(_highlighted(" ".join(f"#{t}" for t in note.tags), query, "dim cyan"))
-            has_secret = bool(self.secret_values.get(note.id))
             badge = Text(no_wrap=True)
             if note.encrypted:
                 badge.append(" 🔒", "dim")
@@ -285,9 +285,6 @@ class BearUI(App):
             row.add_column(justify="right", no_wrap=True)
             row.add_column(width=2)  # spacer between badges and the scrollbar
             row.add_row(label, badge, "")
-            if has_secret:
-                # Table.style does not paint backgrounds; row_styles does.
-                row.row_styles = [SECRET_STYLE]
             options.append(Option(row, id=note.id))
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
