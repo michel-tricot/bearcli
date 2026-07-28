@@ -109,7 +109,7 @@ class BrowseApp(App):
     BINDINGS = [
         Binding("escape", "back_or_quit", "Quit"),
         Binding("enter", "edit_selected", "Edit", show=True),
-        Binding("n", "new_note", "New"),
+        Binding("n,c", "new_note", "New"),
         Binding("t", "add_tag", "Tag"),
         Binding("T", "remove_tag", "Untag", show=False),
         Binding("o", "open_in_bear", "Open in Bear"),
