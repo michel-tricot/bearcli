@@ -5,17 +5,15 @@ from __future__ import annotations
 import re
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 DEFAULT_DB_PATH = (
-    Path.home()
-    / "Library/Group Containers/9K33E3U3T4.net.shinyfrog.bear"
-    / "Application Data/database.sqlite"
+    Path.home() / "Library/Group Containers/9K33E3U3T4.net.shinyfrog.bear" / "Application Data/database.sqlite"
 )
 
 # Core Data stores timestamps as seconds since 2001-01-01 UTC.
-CORE_DATA_EPOCH = datetime(2001, 1, 1, tzinfo=timezone.utc)
+CORE_DATA_EPOCH = datetime(2001, 1, 1, tzinfo=UTC)
 
 
 def core_data_to_datetime(value: float | None) -> datetime | None:

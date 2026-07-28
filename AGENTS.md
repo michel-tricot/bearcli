@@ -10,6 +10,10 @@ database or require the Bear app to be running.
 uv sync                  # install dependencies
 uv run bearcli --help    # run the CLI
 uv run bearcli list -n 5 # quick smoke test (needs Bear installed locally)
+
+uv run ruff format src/  # format (line length 120)
+uv run ruff check src/   # lint — must pass before committing
+uv run ty check src/     # type check — must pass before committing
 ```
 
 There is no test suite yet; changes are verified by running the CLI against the

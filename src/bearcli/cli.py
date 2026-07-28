@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 from urllib.parse import quote
 
 import typer
@@ -22,13 +22,13 @@ app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=Tru
 console = Console()
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     table = "table"
     json = "json"
     text = "text"
 
 
-class OnlyFilter(str, Enum):
+class OnlyFilter(StrEnum):
     pinned = "pinned"
     encrypted = "encrypted"
     trashed = "trashed"
@@ -84,6 +84,7 @@ def _resolve_attachments(note: Note) -> str:
             text = text.replace(f"]({ref})", f"]({target})")
     return text
 
+
 DbPathOption = Annotated[
     Path,
     typer.Option("--db", envvar="BEAR_DB_PATH", help="Path to the Bear SQLite database."),
@@ -95,7 +96,7 @@ def _open_db(path: Path) -> BearDB:
         return BearDB(path)
     except FileNotFoundError as exc:
         console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 def _parse_date(value: str | None, option: str) -> datetime | None:
@@ -108,46 +109,34 @@ def _parse_date(value: str | None, option: str) -> datetime | None:
             f"[red]Error:[/red] invalid date for {option}: {value!r} "
             "(expected ISO format, e.g. 2026-07-01 or 2026-07-01T14:30)"
         )
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
 
 
 @app.command("list")
 def list_notes(
     limit: Annotated[int, typer.Option("--limit", "-n", help="Maximum number of notes.")] = 20,
     tag: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--tag", "-t", help="Only notes with this tag (includes nested sub-tags)."),
     ] = None,
     modified_after: Annotated[
-        Optional[str], typer.Option("--modified-after", help="Modified on or after this date.")
+        str | None, typer.Option("--modified-after", help="Modified on or after this date.")
     ] = None,
-    modified_before: Annotated[
-        Optional[str], typer.Option("--modified-before", help="Modified before this date.")
-    ] = None,
-    created_after: Annotated[
-        Optional[str], typer.Option("--created-after", help="Created on or after this date.")
-    ] = None,
-    created_before: Annotated[
-        Optional[str], typer.Option("--created-before", help="Created before this date.")
-    ] = None,
-    search: Annotated[
-        Optional[str], typer.Option("--search", "-s", help="Filter by text in title or body.")
-    ] = None,
+    modified_before: Annotated[str | None, typer.Option("--modified-before", help="Modified before this date.")] = None,
+    created_after: Annotated[str | None, typer.Option("--created-after", help="Created on or after this date.")] = None,
+    created_before: Annotated[str | None, typer.Option("--created-before", help="Created before this date.")] = None,
+    search: Annotated[str | None, typer.Option("--search", "-s", help="Filter by text in title or body.")] = None,
     only: Annotated[
-        Optional[OnlyFilter],
+        OnlyFilter | None,
         typer.Option(
             "--only",
             help="Only notes with this status: pinned, encrypted, trashed, or archived.",
         ),
     ] = None,
-    all_notes: Annotated[
-        bool, typer.Option("--all", "-a", help="No limit (overrides --limit).")
-    ] = False,
+    all_notes: Annotated[bool, typer.Option("--all", "-a", help="No limit (overrides --limit).")] = False,
     trashed: Annotated[bool, typer.Option("--trashed", help="Include trashed notes.")] = False,
     archived: Annotated[bool, typer.Option("--archived", help="Include archived notes.")] = False,
-    ids_only: Annotated[
-        bool, typer.Option("--ids", help="Print only note identifiers, one per line.")
-    ] = False,
+    ids_only: Annotated[bool, typer.Option("--ids", help="Print only note identifiers, one per line.")] = False,
     fmt: Annotated[
         OutputFormat,
         typer.Option(
@@ -188,9 +177,7 @@ def list_notes(
     if fmt is OutputFormat.text:
         for note in notes:
             modified = note.modified.isoformat() if note.modified else ""
-            print(
-                f"{note.id}\t{modified}\t{','.join(note.tags)}\t{_note_status(note)}\t{note.title}"
-            )
+            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{_note_status(note)}\t{note.title}")
         return
 
     if not notes:
@@ -217,9 +204,7 @@ def list_notes(
 @app.command()
 def get(
     note_id: Annotated[str, typer.Argument(help="Note identifier (UUID from `bearcli list`).")],
-    meta: Annotated[
-        bool, typer.Option("--meta", help="Print metadata frontmatter before the content.")
-    ] = False,
+    meta: Annotated[bool, typer.Option("--meta", help="Print metadata frontmatter before the content.")] = False,
     resolve_attachments: Annotated[
         bool,
         typer.Option(
@@ -311,9 +296,7 @@ def export(
     db = _open_db(db_path)
     try:
         with console.status("Exporting…", spinner="dots") as status:
-            result = export_notes(
-                db, dest, sync=sync, progress=lambda msg: status.update(rich_escape(msg))
-            )
+            result = export_notes(db, dest, sync=sync, progress=lambda msg: status.update(rich_escape(msg)))
     finally:
         db.close()
 
@@ -328,7 +311,4 @@ def export(
         parts.append("index updated")
     console.print(f"Exported to {dest}: " + ", ".join(parts))
     if result.index_skipped:
-        console.print(
-            "[yellow]Warning:[/yellow] README.md exists but was not generated by bearcli; "
-            "left untouched"
-        )
+        console.print("[yellow]Warning:[/yellow] README.md exists but was not generated by bearcli; left untouched")

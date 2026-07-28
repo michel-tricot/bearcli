@@ -6,9 +6,9 @@ import json
 import re
 import shutil
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 from urllib.parse import quote
 
 from bearcli.db import BearDB, Note
@@ -41,10 +41,7 @@ def _dirnames(notes: list[Note]) -> dict[str, str]:
     """
     short = {n.id: f"{slugify(n.title)}-{n.id[:8].lower()}" for n in notes}
     counts = Counter(short.values())
-    return {
-        n.id: short[n.id] if counts[short[n.id]] == 1 else f"{slugify(n.title)}-{n.id.lower()}"
-        for n in notes
-    }
+    return {n.id: short[n.id] if counts[short[n.id]] == 1 else f"{slugify(n.title)}-{n.id.lower()}" for n in notes}
 
 
 def _frontmatter(note: Note) -> str:
@@ -247,8 +244,7 @@ def export_notes(
         result.index_updated = _write_if_changed(index_path, _index_markdown(entries))
     result.index_updated |= _write_if_changed(
         dest / "index.json",
-        json.dumps(sorted(entries, key=lambda e: e["title"].lower()), indent=2, ensure_ascii=False)
-        + "\n",
+        json.dumps(sorted(entries, key=lambda e: e["title"].lower()), indent=2, ensure_ascii=False) + "\n",
     )
 
     return result
