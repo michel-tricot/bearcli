@@ -288,3 +288,36 @@ def test_preview_pane_focusable():
             assert app.focused is not None and app.focused.id == "preview-pane"
 
     run(probe())
+
+
+def test_discard_confirmation():
+    from bearcli.tui import ConfirmDiscard
+
+    async def probe():
+        app = BearUI(list(NOTES))
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            editor = app.query_one("#editor", TextArea)
+            # no changes: esc leaves immediately
+            await pilot.press("e")
+            await pilot.pause()
+            await pilot.press("escape")
+            await pilot.pause()
+            assert str(editor.styles.display) == "none"
+            # with changes: esc asks; n keeps editing, y discards
+            await pilot.press("e")
+            await pilot.pause()
+            await pilot.press("x")
+            await pilot.press("escape")
+            await pilot.pause()
+            assert isinstance(app.screen, ConfirmDiscard)
+            await pilot.press("n")
+            await pilot.pause()
+            assert str(editor.styles.display) == "block" and app.edit_mode
+            await pilot.press("escape")
+            await pilot.pause()
+            await pilot.press("y")
+            await pilot.pause()
+            assert str(editor.styles.display) == "none" and not app.edit_mode
+
+    run(probe())

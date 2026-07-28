@@ -137,6 +137,31 @@ class _TagSuggestions(OptionList):
         super().action_cursor_down()
 
 
+class ConfirmDiscard(ModalScreen[bool]):
+    """Small confirmation shown when leaving the editor with unsaved changes."""
+
+    BINDINGS = [
+        Binding("y", "answer(True)", "Discard"),
+        Binding("n,escape", "answer(False)", "Keep editing"),
+    ]
+    CSS = """
+    ConfirmDiscard { align: center middle; }
+    #confirm-box {
+        width: 46; height: auto; padding: 1 2;
+        border: round $warning; background: $panel;
+    }
+    #confirm-keys { color: $text-muted; margin-top: 1; }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="confirm-box"):
+            yield Label("Discard unsaved changes?")
+            yield Label("[b]y[/b] discard   [b]n[/b]/[b]esc[/b] keep editing", id="confirm-keys")
+
+    def action_answer(self, discard: bool) -> None:
+        self.dismiss(discard)
+
+
 class TagScreen(ModalScreen[str | None]):
     """Tag prompt with autocompletion over known tags."""
 
@@ -338,6 +363,7 @@ class BearUI(App):
         super().__init__()
         self._preloaded = notes is not None
         self._focus_list_after_load = False
+        self._editor_original = ""
         self.notes = notes or []
         self.fuzzy = fuzzy
         self.db_path = db_path
@@ -427,6 +453,7 @@ class BearUI(App):
             # The hidden list dropped focus into the search box during the
             # load; take it back unless the user started typing.
             self._focus_list_after_load = False
+        self._editor_original = ""
             if not self.query_one("#query", Input).value:
                 results.focus()
         self._run_filter(self.search_query)
@@ -592,6 +619,7 @@ class BearUI(App):
         editor = self.query_one("#editor", SecretTextArea)
         editor.secret_values = list(secrets or [])
         editor.text = text
+        self._editor_original = text
         editor.border_title = title
         self.query_one("#preview-pane").styles.display = "none"
         editor.styles.display = "block"
@@ -643,7 +671,15 @@ class BearUI(App):
 
     def action_back_or_quit(self) -> None:
         if self.edit_mode:
-            self._exit_editor()
+            if self.query_one("#editor", SecretTextArea).text != self._editor_original:
+
+                def on_answer(discard: bool | None) -> None:
+                    if discard:
+                        self._exit_editor()
+
+                self.push_screen(ConfirmDiscard(), on_answer)
+            else:
+                self._exit_editor()
         elif isinstance(self.focused, Input):
             self.query_one("#results", OptionList).focus()
         else:
