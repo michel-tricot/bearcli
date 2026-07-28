@@ -775,21 +775,6 @@ def search(
     console.print(table)
 
 
-@tag_app.command("notes")
-def tag_notes(
-    name: Annotated[str, typer.Argument(help="Tag name (includes nested sub-tags).")],
-    limit: Annotated[int, typer.Option("--limit", "-n", help="Maximum number of notes.")] = 20,
-    all_notes: Annotated[bool, typer.Option("--all", "-a", help="No limit (overrides --limit).")] = False,
-    fmt: Annotated[
-        OutputFormat,
-        typer.Option("--format", "-f", help="Output format: table, json, or text."),
-    ] = OutputFormat.table,
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """List the notes carrying a tag."""
-    list_notes(limit=limit, tag=name, all_notes=all_notes, fmt=fmt, db_path=db_path)
-
-
 # Top-level aliases for the most-used commands (hidden from --help).
 app.command("list", hidden=True)(list_notes)
 app.command("search", hidden=True)(search)

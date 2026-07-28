@@ -48,7 +48,6 @@ bearcli note untag C44D09DC-... "work/ideas" # remove a tag from a note
 
 # Tags
 bearcli tag list                             # all tags with note counts
-bearcli tag notes work                       # notes carrying a tag (incl. nested)
 bearcli tag rename old-name new-name         # across all notes
 bearcli tag delete old-name                  # across all notes (asks first)
 

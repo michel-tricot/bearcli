@@ -27,7 +27,7 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 
 - `src/bearcli/cli.py` — Typer app, grouped into `note` (list, get, search,
   create, append, replace, rename, attach, trash, archive, open, tag, untag)
-  and `tag` (list, notes, rename, delete) sub-apps plus top-level `export`;
+  and `tag` (list, rename, delete) sub-apps plus top-level `export`;
   the most-used commands (list, search, get, open, create) have hidden
   top-level aliases. All presentation (Rich tables, JSON/text formats,
   spinner) lives here.
