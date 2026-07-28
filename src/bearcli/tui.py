@@ -20,7 +20,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Footer, Input, Label, OptionList, Static, TextArea
+from textual.widgets import Input, Label, LoadingIndicator, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
 
 from bearcli import actions, ops
@@ -192,6 +192,47 @@ class TagScreen(ModalScreen[str | None]):
         self.dismiss(None)
 
 
+BROWSE_KEYS_BEAR = [
+    ("enter/e", "Edit"),
+    ("n/c", "New"),
+    ("t", "Tag"),
+    ("o", "Open in Bear"),
+    ("a", "Archive"),
+    ("d", "Trash"),
+]
+BROWSE_KEYS_TUI = [
+    ("/", "Search"),
+    ("1/2/3", "View"),
+    ("tab", "Pane"),
+    ("?", "Help"),
+    ("esc", "Quit"),
+]
+EDIT_KEYS_BEAR = [("ctrl+s", "Save to Bear")]
+EDIT_KEYS_TUI = [("tab", "Indent"), ("esc", "Discard")]
+
+
+def _keybar_markup(keys: list[tuple[str, str]]) -> str:
+    return "  ".join(f"[bold]{key}[/bold] [dim]{label}[/dim]" for key, label in keys)
+
+
+class KeyBar(Horizontal):
+    """Bottom key bar: Bear actions on the left, TUI controls on the right."""
+
+    DEFAULT_CSS = """
+    KeyBar { dock: bottom; height: 1; background: $panel; padding: 0 1; }
+    KeyBar > #kb-left { width: auto; }
+    KeyBar > #kb-right { width: 1fr; text-align: right; }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield Static(id="kb-left")
+        yield Static(id="kb-right")
+
+    def show(self, bear: list[tuple[str, str]], tui: list[tuple[str, str]]) -> None:
+        self.query_one("#kb-left", Static).update(_keybar_markup(bear))
+        self.query_one("#kb-right", Static).update(_keybar_markup(tui))
+
+
 HELP_ROWS = [
     ("Navigate", ""),
     ("↑ ↓", "move through the note list"),
@@ -248,8 +289,9 @@ class BearUI(App):
     CSS = """
     #query { dock: top; margin: 0 1; border: round $primary; }
     #query:focus { border: round $accent; }
-    #results { width: 34%; border: round $panel-lighten-2; }
-    #results:focus { border: round $accent; }
+    #list-pane { width: 34%; height: 100%; border: round $panel-lighten-2; }
+    #list-pane:focus-within { border: round $accent; }
+    #results { height: 100%; border: none; background: transparent; }
     #side { width: 66%; }
     #preview-pane { height: 1fr; border: round $panel-lighten-2; padding: 0 1; }
     #preview-pane:focus { border: round $accent; }
@@ -258,8 +300,7 @@ class BearUI(App):
     """
 
     BINDINGS = [
-        Binding("escape", "back_or_quit", "Quit"),
-        Binding("/", "focus_search", "Search"),
+        # Bear actions (left of the footer)
         Binding("e", "edit_selected", "Edit", key_display="enter/e"),
         Binding("enter", "edit_selected", "Edit", show=False),
         Binding("n", "new_note", "New", key_display="n/c"),
@@ -267,15 +308,18 @@ class BearUI(App):
         Binding("t", "add_tag", "Tag"),
         Binding("T", "remove_tag", "Untag", show=False),
         Binding("o", "open_in_bear", "Open in Bear"),
-        Binding("r", "refresh", "Refresh", show=False),
-        Binding("1", "switch_view('notes')", "View", key_display="1/2/3"),
-        Binding("question_mark", "help", "Help", key_display="?"),
-        Binding("2", "switch_view('archive')", "Archive view", show=False),
-        Binding("3", "switch_view('trash')", "Trash view", show=False),
         Binding("a", "archive_note", "Archive"),
         Binding("d", "trash_note", "Trash"),
+        Binding("r", "refresh", "Refresh", show=False),
         Binding("ctrl+s", "save_edit", "Save to Bear"),
+        # TUI controls (right of the footer)
+        Binding("/", "focus_search", "Search"),
+        Binding("1", "switch_view('notes')", "View", key_display="1/2/3"),
+        Binding("2", "switch_view('archive')", "Archive view", show=False),
+        Binding("3", "switch_view('trash')", "Trash view", show=False),
         Binding("tab", "focus_next", "Switch pane", priority=True),
+        Binding("question_mark", "help", "Help", key_display="?"),
+        Binding("escape", "back_or_quit", "Quit"),
     ]
 
     def __init__(
@@ -287,7 +331,7 @@ class BearUI(App):
     ):
         super().__init__()
         self._preloaded = notes is not None
-        self._pending_initial_focus = not self._preloaded
+        self._focus_list_after_load = False
         self.notes = notes or []
         self.fuzzy = fuzzy
         self.db_path = db_path
@@ -306,12 +350,13 @@ class BearUI(App):
     def compose(self) -> ComposeResult:
         yield Input(placeholder="Search notes…", id="query")
         with Horizontal():
-            yield OptionList(id="results")
+            with Vertical(id="list-pane"):
+                yield OptionList(id="results")
             with Vertical(id="side"):
                 with VerticalScroll(id="preview-pane"):
                     yield Static(id="preview-content")
                 yield SecretTextArea(language="markdown", id="editor", tab_behavior="indent")
-        yield Footer()
+        yield KeyBar()
 
     @property
     def edit_mode(self) -> bool:
@@ -340,13 +385,27 @@ class BearUI(App):
     # ── searching / listing ──────────────────────────────────────────────
 
     def on_mount(self) -> None:
+        self.query_one(KeyBar).show(BROWSE_KEYS_BEAR, BROWSE_KEYS_TUI)
         self.query_one("#results", OptionList).focus()
         if self._preloaded:
             self._show_results("", [SearchResult(note=n, snippet="") for n in self.notes])
             self._scan_secrets()
         else:
-            self.query_one("#results", OptionList).loading = True
+            self._set_list_loading(True)
             self._rehydrate()
+
+    def _set_list_loading(self, on: bool) -> None:
+        results = self.query_one("#results", OptionList)
+        pane = self.query_one("#list-pane")
+        if on:
+            self._focus_list_after_load = not (isinstance(self.focused, Input) and self.focused.value)
+            results.display = False
+            if not pane.query("LoadingIndicator"):
+                pane.mount(LoadingIndicator())
+        else:
+            for indicator in pane.query(LoadingIndicator):
+                indicator.remove()
+            results.display = True
 
     @work(exclusive=True, thread=True, group="scan")
     def _scan_secrets(self) -> None:
@@ -355,11 +414,11 @@ class BearUI(App):
     def _apply_secret_values(self, values: dict[str, dict[str, str]]) -> None:
         self.secret_values = values
         results = self.query_one("#results", OptionList)
-        results.loading = False
-        if self._pending_initial_focus:
-            # The loading overlay made the list unfocusable at mount, dropping
-            # focus into the search box; take it back unless typing started.
-            self._pending_initial_focus = False
+        self._set_list_loading(False)
+        if self._focus_list_after_load:
+            # The hidden list dropped focus into the search box during the
+            # load; take it back unless the user started typing.
+            self._focus_list_after_load = False
             if not self.query_one("#query", Input).value:
                 results.focus()
         self._run_filter(self.search_query)
@@ -449,7 +508,7 @@ class BearUI(App):
         result_list.clear_options()
         result_list.add_options(options)
         prefix = {"notes": "", "archive": "Archive · ", "trash": "Trash · "}[self.view]
-        result_list.border_title = f"{prefix}{len(self.shown)} / {len(self.notes)} notes"
+        self.query_one("#list-pane").border_title = f"{prefix}{len(self.shown)} / {len(self.notes)} notes"
         select_id, self._select_id = self._select_id, None
         index = next((i for i, n in enumerate(self.shown) if n.id == select_id), None) if select_id else None
         if self.shown:
@@ -531,6 +590,7 @@ class BearUI(App):
         editor.focus()
         if cursor:
             editor.cursor_location = cursor
+        self.query_one(KeyBar).show(EDIT_KEYS_BEAR, EDIT_KEYS_TUI)
         self.refresh_bindings()
 
     def _exit_editor(self) -> None:
@@ -541,6 +601,7 @@ class BearUI(App):
         self.query_one("#results", OptionList).focus()
         if note := self._selected():
             self.query_one("#preview-content", Static).update(self._preview(note))
+        self.query_one(KeyBar).show(BROWSE_KEYS_BEAR, BROWSE_KEYS_TUI)
         self.refresh_bindings()
 
     def action_edit_selected(self) -> None:
@@ -610,14 +671,14 @@ class BearUI(App):
         self.view = view
         self._select_id = None
         self.notify({"notes": "Notes", "archive": "Archive", "trash": "Trash"}[view] + " view")
-        self.query_one("#results", OptionList).loading = True
+        self._set_list_loading(True)
         self._rehydrate()
 
     def action_help(self) -> None:
         self.push_screen(HelpScreen())
 
     def action_refresh(self) -> None:
-        self.query_one("#results", OptionList).loading = True
+        self._set_list_loading(True)
         self._rehydrate()
 
     def action_archive_note(self) -> None:
