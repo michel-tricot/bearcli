@@ -654,29 +654,6 @@ def replace(
         db.close()
 
 
-@app.command()
-def duplicate(
-    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
-    title: Annotated[str | None, typer.Option("--title", help="Title for the copy (default: '<title> copy').")] = None,
-    db_path: DbPathOption = DEFAULT_DB_PATH,
-) -> None:
-    """Create a copy of a note (text and inline tags; attachments are not copied)."""
-    db = _open_db(db_path)
-    try:
-        note = _require_note(db, note_id)
-        if note.text is None:
-            console.print(f"[red]Error:[/red] note {note.id} is encrypted; cannot duplicate")
-            raise typer.Exit(1)
-        new_title = title or f"{note.title} copy"
-        head, _, body = note.text.partition("\n")
-        text_body = body if head.startswith("# ") else note.text
-        _create_and_report(db, new_title, text_body, None)
-        if note.attachments:
-            console.print(f"[yellow]Note:[/yellow] {len(note.attachments)} attachment(s) were not copied")
-    finally:
-        db.close()
-
-
 @app.command("rename-tag")
 def rename_tag(
     name: Annotated[str, typer.Argument(help="Existing tag name.")],
