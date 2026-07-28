@@ -303,7 +303,8 @@ def _report_secrets(findings: list[SecretFinding]) -> None:
     notes = len({f.note_id for f in findings})
     console.print(
         f"[red]Export blocked:[/red] {len(findings)} potential secret(s) in {notes} note(s). "
-        "Move them somewhere safe (or into an encrypted note), or re-run with --allow-secrets."
+        "Move them somewhere safe (or into an encrypted note), re-run with --redact-secrets "
+        "to export with placeholders, or with --allow-secrets to export as-is."
     )
 
 
