@@ -35,7 +35,7 @@ def _resolve_attachments(note: Note) -> str:
     return rewrite_attachment_refs(note, lambda att: str(att.path))
 
 
-@note_app.command("list")
+@note_app.command("list", rich_help_panel="Read")
 def list_notes(
     limit: Annotated[int, typer.Option("--limit", "-n", help="Maximum number of notes.")] = 20,
     tag: Annotated[
@@ -122,7 +122,7 @@ def list_notes(
     console.print(table)
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Read")
 def get(
     note_id: Annotated[str, typer.Argument(help="Note identifier (UUID from `bearcli list`).")],
     meta: Annotated[bool, typer.Option("--meta", help="Print metadata frontmatter before the content.")] = False,
@@ -222,7 +222,7 @@ def _create_and_perform(bear: Bear, title: str, text: str | None, tags: list[str
     console.print(f"Created note {created.id}")
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Write")
 def create(
     title: Annotated[str, typer.Argument(help="Title of the new note.")],
     text: Annotated[str | None, typer.Option("--text", help="Note body (reads stdin if piped).")] = None,
@@ -237,7 +237,7 @@ def create(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Write")
 def append(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     text: Annotated[str | None, typer.Option("--text", help="Text to add (reads stdin if piped).")] = None,
@@ -261,7 +261,7 @@ def append(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Organize")
 def trash(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     db_path: DbPathOption = DEFAULT_DB_PATH,
@@ -278,7 +278,7 @@ def trash(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Organize")
 def archive(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     db_path: DbPathOption = DEFAULT_DB_PATH,
@@ -295,7 +295,7 @@ def archive(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Organize")
 def tag(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     name: Annotated[str, typer.Argument(help="Tag to add (without the leading #).")],
@@ -317,7 +317,7 @@ def tag(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Organize")
 def untag(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     name: Annotated[str, typer.Argument(help="Tag to remove (without the leading #).")],
@@ -345,7 +345,7 @@ def untag(
         bear.close()
 
 
-@note_app.command("open")
+@note_app.command("open", rich_help_panel="Read")
 def open_note(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     new_window: Annotated[bool, typer.Option("--new-window", "-w", help="Open in a separate window.")] = False,
@@ -364,7 +364,7 @@ def open_note(
 MAX_ATTACH_BYTES = 500_000  # the file travels base64-encoded inside a URL; macOS caps arg size at ~1 MB
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Write")
 def attach(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     file: Annotated[Path, typer.Argument(help="File to attach (appended at the end of the note).")],
@@ -393,7 +393,7 @@ def attach(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Write")
 def rename(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     new_title: Annotated[str, typer.Argument(help="New title for the note.")],
@@ -415,7 +415,7 @@ def rename(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Write")
 def replace(
     note_id: Annotated[str, typer.Argument(help="Note identifier.")],
     text: Annotated[str | None, typer.Option("--text", help="New body (reads stdin if piped).")] = None,
@@ -438,7 +438,7 @@ def replace(
         bear.close()
 
 
-@note_app.command()
+@note_app.command(rich_help_panel="Read")
 def search(
     query: Annotated[str, typer.Argument(help="Search terms, matched against titles, tags, and text.")],
     fuzzy: Annotated[bool, typer.Option("--fuzzy", help="Typo-tolerant matching, ranked by score.")] = False,

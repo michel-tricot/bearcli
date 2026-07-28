@@ -38,9 +38,13 @@ note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=T
 
 tag_app = typer.Typer(help="List and manage tags.", no_args_is_help=True)
 
-app.add_typer(note_app, name="note")
+skills_app = typer.Typer(help="Agent skills bundled with bearcli.", no_args_is_help=True)
 
-app.add_typer(tag_app, name="tag")
+app.add_typer(note_app, name="note", rich_help_panel="Notes & tags")
+
+app.add_typer(tag_app, name="tag", rich_help_panel="Notes & tags")
+
+app.add_typer(skills_app, name="skills", rich_help_panel="Agents")
 
 console = Console()
 

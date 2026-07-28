@@ -60,10 +60,11 @@ tag, publishes both, and updates the Homebrew tap formula
 - `cli/` — Typer CLI package: `common.py` (apps, output types, shared
   helpers), `notes.py` (the `note` group), `tags.py` (the `tag` group),
   `export.py`, `misc.py` (stats, ui), `__init__.py` (assembly + top-level
-  aliases shown in the "Shortcuts" help panel). All presentation (Rich
-  tables, JSON/text formats, spinner) lives here. Commands go through the
-  `Bear` facade; pure helpers over already-loaded notes (`scan_notes`)
-  stay functional.
+  aliases shown in the "Shortcuts" help panel), `skills.py` (the `skills`
+  group serving the bundled agent skill from `src/bearcli/skills/`, which
+  ships inside the wheel). All presentation (Rich tables, JSON/text
+  formats, spinner) lives here. Commands go through the `Bear` facade;
+  pure helpers over already-loaded notes (`scan_notes`) stay functional.
 - `tui.py` — the interactive `ui` Textual app (search, edit, create, tag;
   verified writes through a per-worker `Bear` facade — SQLite connections
   don't cross threads).
@@ -101,7 +102,7 @@ that changes behavior updates the docs in the same commit; do not push and
 - Commands/flags added, removed, renamed, or behavior changed → update
   `README.md` (usage examples, section prose), `docs/index.html` (command
   table, feature cards, demo terminal text if output shapes changed), and
-  `skills/bear-notes/SKILL.md` (agent-facing guidance and machine-readable
+  `src/bearcli/skills/bear-notes/SKILL.md` (agent-facing guidance and machine-readable
   usage). CI runs `scripts/check_docs.py`, but it only verifies command
   *names* appear — accurate descriptions and examples are on you.
 - TUI keybindings or interactions changed → update the README "Terminal UI"

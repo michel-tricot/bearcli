@@ -19,7 +19,7 @@ from bearcli.cli.common import (
 from bearkit.db import DEFAULT_DB_PATH
 
 
-@app.command()
+@app.command(rich_help_panel="Library")
 def stats(
     fmt: Annotated[
         OutputFormat,
@@ -92,7 +92,7 @@ def stats(
     console.print(year_table)
 
 
-@app.command()
+@app.command(rich_help_panel="Library")
 def ui(
     fuzzy: Annotated[bool, typer.Option("--fuzzy", help="Typo-tolerant ranked filtering.")] = False,
     tag_filter: Annotated[str | None, typer.Option("--tag", "-t", help="Restrict to notes with this tag.")] = None,

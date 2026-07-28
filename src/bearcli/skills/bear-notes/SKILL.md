@@ -80,3 +80,7 @@ are found. Prefer re-running with `--redact-secrets`; only use
 - `bearcli ui` is a full-screen interactive app for humans — never launch it
   from an agent; use the commands above instead.
 - `bearcli --version` prints the installed version if you need to check it.
+- This skill ships with the CLI: `bearcli skills install` refreshes the copy
+  in `~/.claude/skills/` after an upgrade; `bearcli skills list` and
+  `bearcli skills show bear-notes` inspect it. If commands here disagree
+  with the installed CLI, trust `--help`.

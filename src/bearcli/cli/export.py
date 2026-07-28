@@ -40,7 +40,7 @@ def _report_secrets(findings: list[SecretFinding]) -> None:
     )
 
 
-@app.command()
+@app.command(rich_help_panel="Library")
 def export(
     dest: Annotated[Path, typer.Argument(help="Destination directory for the markdown files.")],
     sync: Annotated[

@@ -152,12 +152,17 @@ content cannot be read. `bearcli --version` prints the installed version.
 ## Agent skill
 
 An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
-teaching AI agents (Claude Code, etc.) how to use `bearcli` ships in
-[`skills/bear-notes`](skills/bear-notes/SKILL.md):
+teaching AI agents (Claude Code, etc.) how to use `bearcli` ships inside the
+package ([source](src/bearcli/skills/bear-notes/SKILL.md)):
 
 ```sh
-cp -r skills/bear-notes ~/.claude/skills/   # or a project's .claude/skills/
+bearcli skills install               # into ~/.claude/skills/
+bearcli skills install --dir .claude/skills   # into a project
+bearcli skills list                  # bundled skills
+bearcli skills show bear-notes       # print the skill
 ```
+
+Reinstall after upgrading so agents always match the installed CLI.
 
 ## Use as a library
 

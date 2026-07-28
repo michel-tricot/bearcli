@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 
-from bearcli.cli import export, misc, notes, tags  # noqa: F401  # command registration
 from bearcli.cli.common import app
 from bearcli.cli.notes import create, get, list_notes, open_note, search
 
@@ -21,5 +20,9 @@ _alias("get", "note get", get)
 _alias("open", "note open", open_note)
 
 _alias("create", "note create", create)
+
+# Imported after the aliases: help panels render in registration order, and
+# Shortcuts should lead the top-level help.
+from bearcli.cli import export, misc, skills, tags  # noqa: E402, F401  # command registration
 
 __all__ = ["app"]
