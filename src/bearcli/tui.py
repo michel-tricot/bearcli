@@ -61,7 +61,7 @@ class TagScreen(ModalScreen[str | None]):
         border: round $accent; background: $panel;
     }
     #tag-prompt { color: $text-muted; margin-bottom: 1; }
-    #suggestions { max-height: 8; margin-top: 1; display: none; }
+    #suggestions { height: 8; margin-top: 1; }
     """
 
     def __init__(self, prompt: str, choices: list[str]):
@@ -83,7 +83,6 @@ class TagScreen(ModalScreen[str | None]):
         suggestions = self.query_one("#suggestions", OptionList)
         suggestions.clear_options()
         suggestions.add_options([Option(t, id=t) for t in matches])
-        suggestions.styles.display = "block" if matches else "none"
 
     def on_input_changed(self, event: Input.Changed) -> None:
         self._suggest(event.value)
