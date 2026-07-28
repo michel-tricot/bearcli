@@ -93,17 +93,22 @@ def _entry_flags(entry: dict) -> str:
 
 
 _INDEX_TITLE_LENGTH = 60
+_INDEX_TAGS_LENGTH = 40
+
+
+def _ellipsize(value: str, length: int) -> str:
+    return value if len(value) <= length else value[: length - 1].rstrip() + "…"
 
 
 def _index_rows(entries: list[dict]) -> list[str]:
-    rows = ["| Note | Tags | Modified | |", "|---|---|---|---|"]
+    rows = ["| Note | Tags | Modified | | |", "|---|---|---|---|---|"]
     for e in entries:
-        title = e["title"].replace("|", "\\|")
-        if len(title) > _INDEX_TITLE_LENGTH:
-            title = title[: _INDEX_TITLE_LENGTH - 1].rstrip() + "…"
+        title = _ellipsize(e["title"].replace("|", "\\|"), _INDEX_TITLE_LENGTH)
         link = f"[{title}]({e['path']})" if e["path"] else title
+        tags = _ellipsize(", ".join(e["tags"]), _INDEX_TAGS_LENGTH)
         modified = (e["modified"] or "")[:10]
-        rows.append(f"| {link} | {', '.join(e['tags'])} | {modified} | {_entry_flags(e)} |")
+        bear = f"[🐻](bear://x-callback-url/open-note?id={e['id']})"
+        rows.append(f"| {link} | {tags} | {modified} | {_entry_flags(e)} | {bear} |")
     return rows
 
 
