@@ -77,6 +77,16 @@ distributions built from one uv workspace (`packages/bearkit` + the root),
 released in lockstep: same version, bearcli pins `bearkit==<version>`, one
 tag publishes both. Dependency rule: bearkit never imports from bearcli.
 
+The release workflow also updates the Homebrew tap
+(`michel-tricot/homebrew-tap`): it rewrites the formula's sdist url/sha256
+and pushes, so `brew install michel-tricot/tap/bearcli` always serves the
+latest release. No cron: the tap only changes when a release runs. The push
+authenticates with the `TAP_PUSH_TOKEN` repo secret (fine-grained PAT,
+contents read/write on homebrew-tap only). The formula installs the PyPI
+sdist into a private venv with its dependencies; it deliberately does not
+use Homebrew's `virtualenv_install_with_resources` (built for homebrew-core:
+no-deps + pinned resource blocks we would have to regenerate every release).
+
 bearkit API conventions: the `Bear` facade is the public interface (reads
 via `BearDB`, verified writes via `ops`); intrinsic pure helpers are `Note`
 methods (`has_tag`, `to_dict`, `status_line`) while cross-resource

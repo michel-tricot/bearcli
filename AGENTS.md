@@ -36,7 +36,8 @@ detect-secrets only) and `bearcli` (the CLI/TUI product, root package,
 depends on `bearkit==<same version>`). bearkit must never import from
 bearcli. Releases bump three strings together: both `version` fields and
 bearcli's bearkit pin; the release workflow enforces lockstep against the
-tag and publishes both.
+tag, publishes both, and updates the Homebrew tap formula
+(michel-tricot/homebrew-tap).
 
 `packages/bearkit/src/bearkit/`:
 - `bear.py` — the `Bear` facade, the public entry point: reads delegate to
