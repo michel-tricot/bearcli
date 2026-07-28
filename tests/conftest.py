@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from bearlib.db import BearDB, datetime_to_core_data
+from bearkit.db import BearDB, datetime_to_core_data
 
 SCHEMA = """
 CREATE TABLE ZSFNOTE (

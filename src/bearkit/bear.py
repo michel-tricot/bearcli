@@ -4,7 +4,7 @@ The recommended entry point for library users. Reads go straight to the
 read-only database; writes go through Bear's x-callback API and are
 verified against the database before returning (raising `BearWriteError`
 if Bear never applies the change). The raw layers remain available as
-`bear.db`, `bearlib.ops`, and `bearlib.actions`.
+`bear.db`, `bearkit.ops`, and `bearkit.actions`.
 """
 
 from __future__ import annotations
@@ -13,9 +13,10 @@ from datetime import datetime
 from pathlib import Path
 from types import TracebackType
 
-from bearlib import actions, ops
-from bearlib.db import DEFAULT_DB_PATH, BearDB, Note, NoteFilter
-from bearlib.ops import TextMode
+from bearkit import actions, ops
+from bearkit.db import DEFAULT_DB_PATH, BearDB, Note, NoteFilter
+from bearkit.ops import TextMode
+from bearkit.search import SearchResult, naive_search, search_notes
 
 
 class Bear:
@@ -74,6 +75,15 @@ class Bear:
         """(count, total bytes) of attachments on non-trashed notes."""
         return self.db.attachment_stats()
 
+    def search(
+        self, query: str, fuzzy: bool = False, min_score: float = 60.0, tag: str | None = None
+    ) -> list[SearchResult]:
+        """Search titles, tags, and content; fuzzy is typo-tolerant and ranked."""
+        notes = self.list_notes(limit=None, tag=tag)
+        if fuzzy:
+            return search_notes(notes, query, min_score=min_score)
+        return naive_search(notes, query)
+
     # ── verified writing ─────────────────────────────────────────────────
 
     def create_note(self, title: str, text: str | None = None, tags: list[str] | None = None) -> Note:
@@ -118,6 +128,6 @@ class Bear:
 
     # ── the Bear app ─────────────────────────────────────────────────────
 
-    def open_in_bear(self, note: Note, new_window: bool = False) -> None:
+    def open(self, note: Note, new_window: bool = False) -> None:
         """Bring the note up in the Bear app."""
         actions.open_note(note.id, new_window=new_window)

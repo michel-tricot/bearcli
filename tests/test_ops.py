@@ -2,7 +2,7 @@
 
 import pytest
 
-from bearlib import actions, ops
+from bearkit import actions, ops
 
 
 @pytest.fixture(autouse=True)

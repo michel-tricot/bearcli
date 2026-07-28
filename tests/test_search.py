@@ -1,5 +1,5 @@
-from bearlib.db import Note
-from bearlib.search import naive_search, search_notes
+from bearkit.db import Note
+from bearkit.search import naive_search, search_notes
 
 
 def make_note(note_id: str, title: str, text: str = "", tags: tuple[str, ...] = ()) -> Note:

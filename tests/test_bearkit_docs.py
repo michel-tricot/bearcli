@@ -1,9 +1,9 @@
-"""The BEARLIB.md code samples must stay valid as the API evolves."""
+"""The BEARKIT.md code samples must stay valid as the API evolves."""
 
 import re
 from pathlib import Path
 
-DOC = Path(__file__).parent.parent / "docs" / "BEARLIB.md"
+DOC = Path(__file__).parent.parent / "docs" / "BEARKIT.md"
 
 
 def blocks() -> list[str]:
@@ -16,32 +16,32 @@ def test_samples_found():
 
 def test_every_sample_compiles():
     for i, block in enumerate(blocks()):
-        compile(block, f"BEARLIB.md block {i}", "exec")
+        compile(block, f"BEARKIT.md block {i}", "exec")
 
 
 def test_every_documented_name_exists():
-    """Names imported from bearlib in samples must exist in the package."""
-    import bearlib
+    """Names imported from bearkit in samples must exist in the package."""
+    import bearkit
 
     for block in blocks():
-        for match in re.finditer(r"from bearlib import (.+)", block):
+        for match in re.finditer(r"from bearkit import (.+)", block):
             for name in match.group(1).split(","):
-                assert hasattr(bearlib, name.strip()), name
+                assert hasattr(bearkit, name.strip()), name
 
-    import bearlib.markdown as md
+    import bearkit.markdown as md
 
     for block in blocks():
-        for match in re.finditer(r"from bearlib\.markdown import (.+)", block):
+        for match in re.finditer(r"from bearkit\.markdown import (.+)", block):
             for name in match.group(1).split(","):
                 assert hasattr(md, name.strip()), name
 
 
 def test_pure_samples_run():
     """Blocks with no db/Bear dependency execute as written."""
-    pure = [b for b in blocks() if "bearlib.markdown import" in b and "note" not in b]
+    pure = [b for b in blocks() if "bearkit.markdown import" in b and "note" not in b]
     assert pure
     for block in pure:
-        exec(compile(block, "BEARLIB.md pure block", "exec"), {})
+        exec(compile(block, "BEARKIT.md pure block", "exec"), {})
 
 
 def test_samples_pass_project_lint_and_format(tmp_path):

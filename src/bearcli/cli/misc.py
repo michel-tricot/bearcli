@@ -16,7 +16,7 @@ from bearcli.cli.common import (
     app,
     console,
 )
-from bearlib.db import DEFAULT_DB_PATH
+from bearkit.db import DEFAULT_DB_PATH
 
 
 @app.command()

@@ -161,12 +161,12 @@ cp -r skills/bear-notes ~/.claude/skills/   # or a project's .claude/skills/
 
 ## Use as a library
 
-The fundamentals ship as a separate importable package, `bearlib` - reading
+The fundamentals ship as a separate importable package, `bearkit` - reading
 Bear's database, verified writes through Bear's API, search, and secret
 detection - with no CLI or TUI dependencies:
 
 ```python
-from bearlib import Bear, BearWriteError
+from bearkit import Bear, BearWriteError
 
 with Bear() as bear:
     for note in bear.list_notes(tag="work", limit=10):
@@ -178,7 +178,7 @@ with Bear() as bear:
         print("Bear did not apply the change")
 ```
 
-Full reference: [docs/BEARLIB.md](docs/BEARLIB.md). The package ships typed
+Full reference: [docs/BEARKIT.md](docs/BEARKIT.md). The package ships typed
 (`py.typed`).
 
 ## Development

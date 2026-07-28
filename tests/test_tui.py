@@ -3,7 +3,7 @@ import asyncio
 from textual.widgets import Input, OptionList, TextArea
 
 from bearcli.tui import BearUI, TagScreen
-from bearlib.db import Note
+from bearkit.db import Note
 
 
 def make_note(note_id: str, title: str, tags: tuple[str, ...] = ()) -> Note:

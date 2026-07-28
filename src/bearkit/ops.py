@@ -12,9 +12,9 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
-from bearlib import actions
-from bearlib.db import BearDB, Note
-from bearlib.markdown import remove_tag_marker, tag_marker
+from bearkit import actions
+from bearkit.db import BearDB, Note
+from bearkit.markdown import remove_tag_marker, tag_marker
 
 VERIFY_TIMEOUT = 6.0
 """Seconds to wait for Bear to apply a write before raising BearWriteError."""

@@ -16,8 +16,8 @@ from bearcli.cli.common import (
     console,
     tag_app,
 )
-from bearlib import ops
-from bearlib.db import DEFAULT_DB_PATH
+from bearkit import ops
+from bearkit.db import DEFAULT_DB_PATH
 
 
 @tag_app.command("list")

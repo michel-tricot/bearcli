@@ -1,4 +1,4 @@
-# `bearlib` API reference
+# `bearkit` API reference
 
 The fundamentals for interacting with the Bear notes app from Python. macOS
 only; everything runs offline. Install: `pip install bearcli` (both packages
@@ -6,8 +6,8 @@ ship together). The package is typed (`py.typed`). Every sample below is
 self-contained.
 
 `Bear` is the interface: one object for reading and verified writing. The
-raw layers stay available underneath (`bear.db`, `bearlib.ops`,
-`bearlib.actions`) but most code should never need them.
+raw layers stay available underneath (`bear.db`, `bearkit.ops`,
+`bearkit.actions`) but most code should never need them.
 
 ## `Bear`
 
@@ -17,7 +17,7 @@ written) and are verified against the database before returning. Context
 manager, or call `close()`.
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 with Bear() as bear:
     for note in bear.list_notes(tag="work", limit=10):
@@ -35,7 +35,7 @@ value). Text is always loaded.
 ```python
 from datetime import datetime
 
-from bearlib import Bear, NoteFilter
+from bearkit import Bear, NoteFilter
 
 bear = Bear()
 recent = bear.list_notes(limit=10)
@@ -51,7 +51,7 @@ Fetch by id; a unique prefix of 4+ characters works like a full id. Loads
 attachments. Raises `AmbiguousNoteId` when the prefix matches several notes.
 
 ```python
-from bearlib import AmbiguousNoteId, Bear
+from bearkit import AmbiguousNoteId, Bear
 
 bear = Bear()
 try:
@@ -68,7 +68,7 @@ All tags with their note counts. Bear keeps empty tag rows around; they are
 hidden unless `include_empty=True`.
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 for name, count in bear.list_tags():
@@ -80,22 +80,37 @@ for name, count in bear.list_tags():
 Count and total bytes of attachments on non-trashed notes.
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 count, total_bytes = bear.attachment_stats()
 print(f"{count} attachments, {total_bytes / 1e6:.1f} MB")
 ```
 
+#### `bear.search(query, fuzzy=False, min_score=60.0, tag=None) -> list[SearchResult]`
+
+Case-insensitive substring by default; `fuzzy=True` is typo-tolerant and
+ranked (results then carry a `score`).
+
+```python
+from bearkit import Bear
+
+bear = Bear()
+for result in bear.search("invoice", tag="work"):
+    print(result.note.title, result.snippet)
+for result in bear.search("quarterly planing", fuzzy=True)[:5]:
+    print(f"{result.score:5.1f}  {result.note.title}")
+```
+
 ### Writing
 
 Verified writes raise `BearWriteError` if Bear doesn't observably apply the
-change within `bearlib.ops.VERIFY_TIMEOUT` seconds.
+change within `bearkit.ops.VERIFY_TIMEOUT` seconds.
 
 #### `bear.create_note(title, text=None, tags=None) -> Note`
 
 ```python
-from bearlib import Bear, BearWriteError
+from bearkit import Bear, BearWriteError
 
 bear = Bear()
 try:
@@ -111,7 +126,7 @@ except BearWriteError:
 `REPLACE_ALL` (including the title). Strings are accepted and validated.
 
 ```python
-from bearlib import Bear, TextMode
+from bearkit import Bear, TextMode
 
 bear = Bear()
 note = bear.get_note("C44D09DC")
@@ -125,7 +140,7 @@ bear.add_text(note, "new body", mode=TextMode.REPLACE)
 Replaces the heading line, keeping the body.
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 note = bear.get_note("C44D09DC")
@@ -140,7 +155,7 @@ Tags are inline markers in the note text; `remove_tag` rewrites the text
 without the marker and raises `TagMarkerNotFound` when none is present.
 
 ```python
-from bearlib import Bear, TagMarkerNotFound
+from bearkit import Bear, TagMarkerNotFound
 
 bear = Bear()
 note = bear.get_note("C44D09DC")
@@ -160,7 +175,7 @@ The file travels base64-encoded inside a URL; keep it under ~500 KB.
 import base64
 from pathlib import Path
 
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 note = bear.get_note("C44D09DC")
@@ -174,7 +189,7 @@ bear.attach_file(note, "chart.png", payload)
 One-way: Bear has no untrash/unarchive API (restore is UI-only).
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 note = bear.get_note("C44D09DC")
@@ -187,7 +202,7 @@ bear.archive(note)
 Across all notes; verified via the tag list.
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 bear.rename_tag("old-name", "new-name")
@@ -196,14 +211,14 @@ bear.delete_tag("obsolete")
 
 ### The Bear app
 
-#### `bear.open_in_bear(note, new_window=False)`
+#### `bear.open(note, new_window=False)`
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 note = bear.list_notes(limit=1)[0]
-bear.open_in_bear(note)
+bear.open(note)
 ```
 
 ## `Note`
@@ -215,7 +230,7 @@ Fields: `id`, `title`, `text` (None **iff encrypted**), `created` /
 ### `note.has_tag(name)`, `note.to_dict()`, `note.status_line`
 
 ```python
-from bearlib import Bear
+from bearkit import Bear
 
 bear = Bear()
 note = bear.list_notes(limit=1)[0]
@@ -224,7 +239,7 @@ print(note.to_dict())  # serializable: id, title, tags, ISO dates, flags
 print(note.status_line)  # e.g. "pinned,archived" ("" when none)
 ```
 
-## Search - `bearlib.search`
+## Search - `bearkit.search`
 
 ### `naive_search(notes, query) -> list[SearchResult]`
 
@@ -232,7 +247,7 @@ Case-insensitive substring over titles, tags, and text; preserves input
 order; `score` is None.
 
 ```python
-from bearlib import Bear, naive_search
+from bearkit import Bear, naive_search
 
 bear = Bear()
 notes = bear.list_notes(limit=None)
@@ -246,7 +261,7 @@ Typo-tolerant and ranked (rapidfuzz); results carry a `score` and a
 `snippet` locating the match.
 
 ```python
-from bearlib import Bear, search_notes
+from bearkit import Bear, search_notes
 
 bear = Bear()
 notes = bear.list_notes(limit=None)
@@ -254,7 +269,7 @@ for result in search_notes(notes, "quarterly planing")[:5]:
     print(f"{result.score:5.1f}  {result.note.title}  {result.snippet}")
 ```
 
-## Secrets - `bearlib.secrets`
+## Secrets - `bearkit.secrets`
 
 ### `scan_notes(notes) -> list[SecretFinding]`
 
@@ -263,7 +278,7 @@ credentials. `SecretFinding.excerpt` is safe to display;
 `SecretFinding.secret` holds the raw value for redaction - never print it.
 
 ```python
-from bearlib import Bear, scan_notes
+from bearkit import Bear, scan_notes
 
 bear = Bear()
 findings = scan_notes(bear.list_notes(limit=None))
@@ -274,7 +289,7 @@ for f in findings:
 ### `redaction_map(findings)` and `redact_text(text, secrets)`
 
 ```python
-from bearlib import Bear, redact_text, redaction_map, scan_notes
+from bearkit import Bear, redact_text, redaction_map, scan_notes
 
 bear = Bear()
 notes = bear.list_notes(limit=None)
@@ -285,7 +300,7 @@ for n in notes:
         print(safe)
 ```
 
-## Markdown - `bearlib.markdown`
+## Markdown - `bearkit.markdown`
 
 ### `rewrite_attachment_refs(note, target_for) -> str`
 
@@ -293,8 +308,8 @@ Rewrites bare attachment links to per-attachment targets, handling Bear's
 percent-encoding. Regular URLs are never touched.
 
 ```python
-from bearlib import Bear
-from bearlib.markdown import rewrite_attachment_refs
+from bearkit import Bear
+from bearkit.markdown import rewrite_attachment_refs
 
 bear = Bear()
 note = bear.list_notes(limit=1)[0]
@@ -308,7 +323,7 @@ The inline marker Bear uses for a tag, and text with that marker stripped
 (None when no marker matched; longer tags sharing the prefix are untouched).
 
 ```python
-from bearlib.markdown import remove_tag_marker, tag_marker
+from bearkit.markdown import remove_tag_marker, tag_marker
 
 assert tag_marker("work") == "#work"
 assert tag_marker("two words") == "#two words#"
@@ -320,6 +335,6 @@ assert remove_tag_marker("plain text", "work") is None
 
 - `BearDB` - the read-only database handle behind `bear.db`; same reading
   methods as the facade.
-- `bearlib.ops` - the verified-write engine; functions take `(db, note, ...)`.
-- `bearlib.actions` - fire-and-forget x-callback calls, no verification;
+- `bearkit.ops` - the verified-write engine; functions take `(db, note, ...)`.
+- `bearkit.actions` - fire-and-forget x-callback calls, no verification;
   `actions.wait_for(predicate)` helps hand-roll your own.

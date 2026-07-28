@@ -1,4 +1,4 @@
-"""bearlib: the fundamentals for interacting with the Bear notes app.
+"""bearkit: the fundamentals for interacting with the Bear notes app.
 
 - `Bear`: the facade and recommended entry point - read notes, write them
   through the Bear app (verified), all from one object.
@@ -14,9 +14,9 @@ Nothing in this package depends on a UI; bearcli's CLI and TUI are built
 on top of it. macOS only (Bear is a macOS/iOS app).
 """
 
-from bearlib import actions, db, markdown, ops, search, secrets
-from bearlib.bear import Bear
-from bearlib.db import (
+from bearkit import actions, db, markdown, ops, search, secrets
+from bearkit.bear import Bear
+from bearkit.db import (
     DEFAULT_DB_PATH,
     AmbiguousNoteId,
     Attachment,
@@ -24,9 +24,9 @@ from bearlib.db import (
     Note,
     NoteFilter,
 )
-from bearlib.ops import BearWriteError, TagMarkerNotFound, TextMode
-from bearlib.search import SearchResult, naive_search, search_notes
-from bearlib.secrets import SecretFinding, redact_text, redaction_map, scan_notes
+from bearkit.ops import BearWriteError, TagMarkerNotFound, TextMode
+from bearkit.search import SearchResult, naive_search, search_notes
+from bearkit.secrets import SecretFinding, redact_text, redaction_map, scan_notes
 
 __all__ = [
     "DEFAULT_DB_PATH",

@@ -68,21 +68,21 @@ unencoded absolute paths would produce broken markdown links). Only filenames
 known from `ZSFNOTEFILE` are rewritten — regular URLs in the text are never
 touched.
 
-## Package split: bearlib and bearcli
+## Package split: bearkit and bearcli
 
-`bearlib` holds the fundamentals (db, actions, ops, markdown, search,
+`bearkit` holds the fundamentals (db, actions, ops, markdown, search,
 secrets) with no UI dependencies; `bearcli` is the CLI/TUI product on top.
 Both ship from the same distribution (`tool.uv.build-backend.module-name`
-lists both). Dependency rule: bearlib never imports from bearcli.
+lists both). Dependency rule: bearkit never imports from bearcli.
 
-bearlib API conventions: the `Bear` facade is the public interface (reads
+bearkit API conventions: the `Bear` facade is the public interface (reads
 via `BearDB`, verified writes via `ops`); intrinsic pure helpers are `Note`
 methods (`has_tag`, `to_dict`, `status_line`) while cross-resource
 operations stay functional in `ops`; enums over magic strings
 (`NoteFilter`, `TextMode`); writes raise (`BearWriteError`,
 `TagMarkerNotFound`) instead of returning None; `Note.text` is None iff the
 note is encrypted (text is always loaded); `Bear`/`BearDB` are context
-managers; both packages ship `py.typed`. API reference: `docs/BEARLIB.md`.
+managers; both packages ship `py.typed`. API reference: `docs/BEARKIT.md`.
 
 ## CLI design (`cli.py`)
 

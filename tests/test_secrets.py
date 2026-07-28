@@ -1,5 +1,5 @@
-from bearlib.db import Note
-from bearlib.secrets import redact_text, redaction_map, scan_notes
+from bearkit.db import Note
+from bearkit.secrets import redact_text, redaction_map, scan_notes
 
 
 def note(text: str) -> Note:

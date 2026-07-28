@@ -23,10 +23,10 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, LoadingIndicator, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
 
-from bearlib import actions, ops
-from bearlib.db import DEFAULT_DB_PATH, BearDB, Note
-from bearlib.search import SearchResult, naive_search, search_notes
-from bearlib.secrets import redaction_map, scan_notes
+from bearkit import actions, ops
+from bearkit.db import DEFAULT_DB_PATH, BearDB, Note
+from bearkit.search import SearchResult, naive_search, search_notes
+from bearkit.secrets import redaction_map, scan_notes
 
 HIGHLIGHT = "black on #dcb96a"
 SECRET_STYLE = "black on #ff9999"

@@ -12,8 +12,8 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from bearlib import actions
-from bearlib.db import AmbiguousNoteId, BearDB, Note, NoteFilter
+from bearkit import actions
+from bearkit.db import AmbiguousNoteId, BearDB, Note, NoteFilter
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
 

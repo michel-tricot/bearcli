@@ -24,11 +24,11 @@ from bearcli.cli.common import (
     console,
     note_app,
 )
-from bearlib import actions, ops
-from bearlib.db import DEFAULT_DB_PATH, BearDB, Note
-from bearlib.markdown import rewrite_attachment_refs
-from bearlib.search import naive_search, search_notes
-from bearlib.secrets import redact_text, redaction_map, scan_notes
+from bearkit import actions, ops
+from bearkit.db import DEFAULT_DB_PATH, BearDB, Note
+from bearkit.markdown import rewrite_attachment_refs
+from bearkit.search import naive_search, search_notes
+from bearkit.secrets import redact_text, redaction_map, scan_notes
 
 
 def _resolve_attachments(note: Note) -> str:

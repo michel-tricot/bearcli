@@ -30,11 +30,11 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 
 ## Layout
 
-Two packages ship from this repo: `bearlib` (the fundamentals for talking to
+Two packages ship from this repo: `bearkit` (the fundamentals for talking to
 Bear - no UI dependencies) and `bearcli` (the CLI/TUI product built on it).
-bearlib must never import from bearcli.
+bearkit must never import from bearcli.
 
-`src/bearlib/`:
+`src/bearkit/`:
 - `bear.py` — the `Bear` facade, the public entry point: reads delegate to
   `db`, writes to `ops`. Note's intrinsic helpers are methods (`has_tag`,
   `to_dict`, `status_line`); cross-resource operations stay functional in
@@ -58,7 +58,7 @@ bearlib must never import from bearcli.
   aliases shown in the "Shortcuts" help panel). All presentation (Rich
   tables, JSON/text formats, spinner) lives here.
 - `tui.py` — the interactive `ui` Textual app (search, edit, create, tag;
-  writes via bearlib.ops, verified like the CLI).
+  writes via bearkit.ops, verified like the CLI).
 - `export.py` — export to per-note directories with index generation.
   UI-free; reports progress through an optional callback. Export blocks on
   secret findings before writing anything (`--allow-secrets` overrides).
@@ -101,11 +101,11 @@ that changes behavior updates the docs in the same commit; do not push and
 - TUI appearance changed (layout, colors, indicators, key bar) → regenerate
   the website screenshot: `uv run python scripts/render_tui_demo.py` and
   commit `docs/tui.svg`.
-- bearlib public API changed (functions, signatures, enums, errors,
-  behavior) → update `docs/BEARLIB.md`, including the **code sample for each
+- bearkit public API changed (functions, signatures, enums, errors,
+  behavior) → update `docs/BEARKIT.md`, including the **code sample for each
   affected function** (every public function has one; add a sample for new
   functions). Samples must be self-contained (own imports and setup) and
-  pass the project's ruff lint + format. `tests/test_bearlib_docs.py`
+  pass the project's ruff lint + format. `tests/test_bearkit_docs.py`
   enforces compilation, name existence, and lint/format - but only you can
   keep the samples idiomatic and reflective of the change.
 - Design decisions, Bear-schema learnings, or non-obvious internals → record

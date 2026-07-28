@@ -2,7 +2,7 @@
 
 import pytest
 
-from bearlib import Bear, BearWriteError, actions, ops
+from bearkit import Bear, BearWriteError, actions, ops
 
 
 @pytest.fixture(autouse=True)
@@ -45,3 +45,12 @@ def test_note_methods(populated):
     assert note.has_tag("WORK")  # case-insensitive
     assert note.to_dict()["pinned"] is True
     assert note.status_line == "pinned"
+
+
+def test_facade_search(populated):
+    populated.conn.commit()
+    bear = Bear(populated.path)
+    hits = bear.search("milk")
+    assert [r.note.title for r in hits] == ["Groceries"]
+    fuzzy = bear.search("grocries", fuzzy=True)
+    assert fuzzy and fuzzy[0].note.title == "Groceries" and fuzzy[0].score is not None

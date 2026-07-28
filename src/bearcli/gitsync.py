@@ -16,7 +16,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from bearcli.export import ExportResult, export_notes
-from bearlib.db import BearDB
+from bearkit.db import BearDB
 
 
 class GitError(RuntimeError):
