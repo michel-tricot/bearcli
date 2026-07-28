@@ -778,7 +778,7 @@ def search(
 # Top-level aliases for the most-used commands, shown in their own help panel.
 def _alias(name: str, target: str, func: Callable) -> None:
     summary = (func.__doc__ or "").strip().splitlines()[0]
-    app.command(name, help=f"{summary} Alias for `bearcli {target}`.", rich_help_panel="Shortcuts")(func)
+    app.command(name, help=f"{summary} (alias for `bearcli {target}`)", rich_help_panel="Shortcuts")(func)
 
 
 _alias("list", "note list", list_notes)
