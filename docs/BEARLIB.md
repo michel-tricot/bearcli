@@ -79,19 +79,19 @@ count, total_bytes = db.attachment_stats()
 print(f"{count} attachments, {total_bytes / 1e6:.1f} MB")
 ```
 
-### `Note`, `note_metadata(note)`, `note_status(note)`
+### `Note`, `note_metadata(note)`, `pretty_status(note)`
 
 `Note` fields: `id`, `title`, `text` (None **iff encrypted**), `created` /
 `modified` (timezone-aware), `pinned` / `encrypted` / `archived` / `trashed`,
 `tags`, `attachments` (each with `filename`, `path`, `size`, `exists`).
 
 ```python
-from bearlib import BearDB, note_metadata, note_status
+from bearlib import BearDB, note_metadata, pretty_status
 
 db = BearDB()
 note = db.list_notes(limit=1)[0]
 print(note_metadata(note))  # serializable dict: id, title, tags, ISO dates, flags
-print(note_status(note))  # e.g. "pinned,archived" ("" when none)
+print(pretty_status(note))  # e.g. "pinned,archived" ("" when none)
 ```
 
 ## Writing - `bearlib.ops`

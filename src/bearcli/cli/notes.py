@@ -25,7 +25,7 @@ from bearcli.cli.common import (
     note_app,
 )
 from bearlib import actions, ops
-from bearlib.db import DEFAULT_DB_PATH, BearDB, Note, note_status
+from bearlib.db import DEFAULT_DB_PATH, BearDB, Note, pretty_status
 from bearlib.markdown import rewrite_attachment_refs
 from bearlib.search import naive_search, search_notes
 from bearlib.secrets import redact_text, redaction_map, scan_notes
@@ -99,7 +99,7 @@ def list_notes(
     if fmt is OutputFormat.text:
         for note in notes:
             modified = note.modified.isoformat() if note.modified else ""
-            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{note_status(note)}\t{note.title}")
+            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{pretty_status(note)}\t{note.title}")
         return
 
     if not notes:
@@ -117,7 +117,7 @@ def list_notes(
             note.id,
             note.title,
             ", ".join(note.tags),
-            note_status(note),
+            pretty_status(note),
             note.modified.strftime("%Y-%m-%d %H:%M") if note.modified else "",
         )
     console.print(table)

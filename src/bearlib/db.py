@@ -64,7 +64,7 @@ class Note:
     attachments: list[Attachment] = field(default_factory=list)
 
 
-def note_status(note: Note) -> str:
+def pretty_status(note: Note) -> str:
     """Comma-joined status flags, e.g. "pinned,archived"."""
     flags = (
         ("pinned", note.pinned),

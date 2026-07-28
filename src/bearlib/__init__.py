@@ -22,7 +22,7 @@ from bearlib.db import (
     Note,
     NoteFilter,
     note_metadata,
-    note_status,
+    pretty_status,
 )
 from bearlib.ops import BearWriteError, TagMarkerNotFound, TextMode
 from bearlib.search import SearchResult, naive_search, search_notes
@@ -45,7 +45,7 @@ __all__ = [
     "markdown",
     "naive_search",
     "note_metadata",
-    "note_status",
+    "pretty_status",
     "ops",
     "redact_text",
     "redaction_map",
