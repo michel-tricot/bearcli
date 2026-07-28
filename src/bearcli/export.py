@@ -92,23 +92,32 @@ def _entry_flags(entry: dict) -> str:
     return flags
 
 
-_INDEX_TITLE_LENGTH = 60
-_INDEX_TAGS_LENGTH = 40
+_INDEX_TITLE_LENGTH = 48
+_INDEX_TAG_LENGTH = 18
+_INDEX_MAX_TAGS = 2
 
 
 def _ellipsize(value: str, length: int) -> str:
     return value if len(value) <= length else value[: length - 1].rstrip() + "…"
 
 
+def _index_tags(tags: list[str]) -> str:
+    shown = ", ".join(_ellipsize(t, _INDEX_TAG_LENGTH) for t in tags[:_INDEX_MAX_TAGS])
+    if len(tags) > _INDEX_MAX_TAGS:
+        shown += f" +{len(tags) - _INDEX_MAX_TAGS}"
+    return shown
+
+
 def _index_rows(entries: list[dict]) -> list[str]:
-    rows = ["| Note | Tags | Modified | | |", "|---|---|---|---|---|"]
+    rows = ["| Note | Tags | Modified |", "|---|---|---|"]
     for e in entries:
         title = _ellipsize(e["title"].replace("|", "\\|"), _INDEX_TITLE_LENGTH)
         link = f"[{title}]({e['path']})" if e["path"] else title
-        tags = _ellipsize(", ".join(e["tags"]), _INDEX_TAGS_LENGTH)
-        modified = (e["modified"] or "")[:10]
-        bear = f"[🐻](bear://x-callback-url/open-note?id={e['id']})"
-        rows.append(f"| {link} | {tags} | {modified} | {_entry_flags(e)} | {bear} |")
+        flags = _entry_flags(e)
+        note_cell = " ".join(
+            part for part in (link, flags, f"[🐻](bear://x-callback-url/open-note?id={e['id']})") if part
+        )
+        rows.append(f"| {note_cell} | {_index_tags(e['tags'])} | {(e['modified'] or '')[:10]} |")
     return rows
 
 
