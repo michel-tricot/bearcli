@@ -264,15 +264,18 @@ class BearUI(App):
             if note.tags:
                 label.append("  ")
                 label.append(_highlighted(" ".join(f"#{t}" for t in note.tags), query, "dim cyan"))
+            has_secret = bool(self.secret_counts.get(note.id))
             badge = Text(no_wrap=True)
             if note.encrypted:
                 badge.append(" 🔒", "dim")
-            if self.secret_counts.get(note.id):
-                badge.append(" 🚨 ", "on dark_red")
+            if has_secret:
+                badge.append(" 🚨 ")
             row = RichTable.grid(expand=True)
             row.add_column(ratio=1, no_wrap=True, overflow="ellipsis")
             row.add_column(justify="right", no_wrap=True)
             row.add_row(label, badge)
+            if has_secret:
+                row.style = "on dark_red"
             options.append(Option(row, id=note.id))
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
