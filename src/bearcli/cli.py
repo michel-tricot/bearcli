@@ -24,7 +24,7 @@ from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
 from bearcli.search import naive_search, search_notes
-from bearcli.secrets import SecretFinding, redaction_map, scan_notes
+from bearcli.secrets import SecretFinding, redact_text, redaction_map, scan_notes
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
 note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=True)
@@ -223,6 +223,10 @@ def get(
             help="Rewrite attachment references in the content to absolute file paths.",
         ),
     ] = False,
+    redact_secrets: Annotated[
+        bool,
+        typer.Option("--redact-secrets", help="Replace detected secrets with a [redacted: <rule>] placeholder."),
+    ] = False,
     fmt: Annotated[
         OutputFormat,
         typer.Option(
@@ -248,6 +252,9 @@ def get(
         raise typer.Exit(1)
 
     text = _resolve_attachments(note) if resolve_attachments else note.text
+    if redact_secrets and text is not None:
+        note_secrets = redaction_map(scan_notes([note])).get(note.id, {})
+        text = redact_text(text, note_secrets)
 
     if fmt is OutputFormat.json:
         data = _note_to_dict(note, with_text=True)

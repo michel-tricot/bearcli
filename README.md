@@ -54,6 +54,7 @@ bearcli note list --ids                      # only identifiers, one per line
 bearcli get C44D09DC-7F0E-43BB-BEB8-67E3A389A448
 bearcli get C44D09DC-... --meta              # with YAML-style frontmatter
 bearcli get C44D09DC-... -r                  # rewrite attachment refs to absolute paths
+bearcli get C44D09DC-... --redact-secrets    # secrets replaced by placeholders
 bearcli open C44D09DC-...                    # open in the Bear app
 ```
 

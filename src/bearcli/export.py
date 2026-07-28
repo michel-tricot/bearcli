@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from bearcli.db import BearDB, Note
+from bearcli.secrets import redact_text
 
 NOTE_FILENAME = "README.md"
 ATTACHMENTS_DIRNAME = "attachments"
@@ -59,13 +60,6 @@ def _frontmatter(note: Note, redacted: bool = False) -> str:
         lines.append("redacted: true")
     lines.append("---")
     return "\n".join(lines)
-
-
-def _apply_redactions(text: str, secrets: dict[str, str]) -> str:
-    # Longest first, in case one detected value contains another.
-    for value in sorted(secrets, key=len, reverse=True):
-        text = text.replace(value, f"[redacted: {secrets[value]}]")
-    return text
 
 
 def _parse_frontmatter(path: Path) -> dict[str, str]:
@@ -228,7 +222,7 @@ def export_notes(
 
         text = _rewrite_refs(note)
         if note_secrets:
-            text = _apply_redactions(text, note_secrets)
+            text = redact_text(text, note_secrets)
         note_dir.mkdir(exist_ok=True)
         note_path.write_text(f"{_frontmatter(note, redacted=bool(note_secrets))}\n{text}\n")
 

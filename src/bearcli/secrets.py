@@ -193,3 +193,11 @@ def redaction_map(findings: list[SecretFinding]) -> dict[str, dict[str, str]]:
         if finding.secret:
             by_note.setdefault(finding.note_id, {}).setdefault(finding.secret, finding.rule)
     return by_note
+
+
+def redact_text(text: str, secrets: dict[str, str]) -> str:
+    """Replace each secret value with a placeholder naming the rule that found it."""
+    # Longest first, in case one detected value contains another.
+    for value in sorted(secrets, key=len, reverse=True):
+        text = text.replace(value, f"[redacted: {secrets[value]}]")
+    return text
