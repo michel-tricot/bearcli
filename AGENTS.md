@@ -17,6 +17,8 @@ uv run ruff format src/  # format (line length 120)
 uv run ruff check src/   # lint — must pass before committing
 uv run ty check src/     # type check — must pass before committing
 uv run pytest tests/ -q  # test suite — must pass before committing
+uv run python scripts/check_docs.py       # docs cover every command
+uv run python scripts/render_tui_demo.py  # regenerate docs/tui.svg after TUI changes
 ```
 
 Run `uv run pytest tests/` - the suite uses a synthetic Bear database
@@ -72,14 +74,26 @@ See `docs/IMPLEMENTATION.md` for Bear's schema details and export design.
 - Encrypted notes (`ZENCRYPTED = 1`) have no readable text; surface them in
   listings/indexes but never fail trying to read their content.
 
-## Documentation
+## Documentation — part of every change
 
-When changing the CLI surface (commands added/removed/renamed, notable flags,
-changed behavior), update `README.md` (usage examples) and `docs/index.html`
-(the GitHub Pages one-pager: command table, demo terminal if output changed)
-in the same commit. CI runs `scripts/check_docs.py`, which fails if any
-command is missing from either file — but it only checks command names, so
-keeping descriptions and examples accurate is on you.
+Docs must always describe the current state of the CLI and TUI. Any commit
+that changes behavior updates the docs in the same commit; do not push and
+"catch up later". Checklist by kind of change:
+
+- Commands/flags added, removed, renamed, or behavior changed → update
+  `README.md` (usage examples, section prose) and `docs/index.html` (command
+  table, feature cards, demo terminal text if output shapes changed). CI runs
+  `scripts/check_docs.py`, but it only verifies command *names* appear —
+  accurate descriptions and examples are on you.
+- TUI keybindings or interactions changed → update the README "Terminal UI"
+  key-map paragraph AND the in-app help (`HELP_ROWS`) AND the key bar
+  (`BROWSE_KEYS_*`/`EDIT_KEYS_*`) so all three agree.
+- TUI appearance changed (layout, colors, indicators, key bar) → regenerate
+  the website screenshot: `uv run python scripts/render_tui_demo.py` and
+  commit `docs/tui.svg`.
+- Design decisions, Bear-schema learnings, or non-obvious internals → record
+  them in `docs/IMPLEMENTATION.md`.
+- New modules or moved responsibilities → update the Layout section here.
 
 ## Conventions
 
