@@ -775,9 +775,13 @@ def search(
     console.print(table)
 
 
-# Top-level aliases for the most-used commands (hidden from --help).
-app.command("list", hidden=True)(list_notes)
-app.command("search", hidden=True)(search)
-app.command("get", hidden=True)(get)
-app.command("open", hidden=True)(open_note)
-app.command("create", hidden=True)(create)
+# Top-level aliases for the most-used commands, shown in their own help panel.
+def _alias(name: str, target: str, func: Callable) -> None:
+    app.command(name, help=f"Alias for `bearcli {target}`.", rich_help_panel="Shortcuts")(func)
+
+
+_alias("list", "note list", list_notes)
+_alias("search", "note search", search)
+_alias("get", "note get", get)
+_alias("open", "note open", open_note)
+_alias("create", "note create", create)
