@@ -287,6 +287,7 @@ class BearUI(App):
     ):
         super().__init__()
         self._preloaded = notes is not None
+        self._pending_initial_focus = not self._preloaded
         self.notes = notes or []
         self.fuzzy = fuzzy
         self.db_path = db_path
@@ -353,7 +354,14 @@ class BearUI(App):
 
     def _apply_secret_values(self, values: dict[str, dict[str, str]]) -> None:
         self.secret_values = values
-        self.query_one("#results", OptionList).loading = False
+        results = self.query_one("#results", OptionList)
+        results.loading = False
+        if self._pending_initial_focus:
+            # The loading overlay made the list unfocusable at mount, dropping
+            # focus into the search box; take it back unless typing started.
+            self._pending_initial_focus = False
+            if not self.query_one("#query", Input).value:
+                results.focus()
         self._run_filter(self.search_query)
 
     @work(thread=True, group="refresh")

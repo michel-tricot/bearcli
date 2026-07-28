@@ -274,6 +274,7 @@ def test_async_initial_load_with_spinner(populated):
             await pilot.pause(1.0)
             assert results.loading is False
             assert len(app.notes) >= 3  # loaded by the worker, not the caller
+            assert app.focused is results  # focus lands on the list once loaded
 
     run(probe())
 
