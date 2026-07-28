@@ -271,6 +271,8 @@ class HelpScreen(ModalScreen[None]):
         table.add_column()
         for key, description in HELP_ROWS:
             if not description:
+                if table.row_count:
+                    table.add_row("", "")  # blank line between sections
                 table.add_row(Text(key, "dim italic"), "")
             else:
                 table.add_row(key, description)
