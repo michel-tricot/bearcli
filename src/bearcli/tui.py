@@ -289,14 +289,15 @@ class BearUI(App):
     CSS = """
     #query { dock: top; margin: 0 1; border: round $primary; }
     #query:focus { border: round $accent; }
-    #list-pane { width: 34%; height: 100%; border: round $panel-lighten-2; }
+    #list-pane { width: 34%; border: round $panel-lighten-2; }
     #list-pane:focus-within { border: round $accent; }
-    #results { height: 100%; border: none; background: transparent; }
+    #results { height: 1fr; border: none; background: transparent; }
+    #list-pane LoadingIndicator { height: 1fr; }
     #side { width: 66%; }
     #preview-pane { height: 1fr; border: round $panel-lighten-2; padding: 0 1; }
     #preview-pane:focus { border: round $accent; }
     #editor { height: 1fr; border: round $accent; display: none; }
-    Horizontal { height: 1fr; margin: 0 1; }
+    #main { height: 1fr; margin: 0 1; }
     """
 
     BINDINGS = [
@@ -349,7 +350,7 @@ class BearUI(App):
 
     def compose(self) -> ComposeResult:
         yield Input(placeholder="Search notes…", id="query")
-        with Horizontal():
+        with Horizontal(id="main"):
             with Vertical(id="list-pane"):
                 yield OptionList(id="results")
             with Vertical(id="side"):
