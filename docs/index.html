@@ -90,7 +90,7 @@
     margin-bottom: 20px;
   }
 
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
   .card {
     background: var(--panel);
@@ -172,14 +172,6 @@ Exported to <span class="cy">~/bear-backup</span>: <span class="g">3 written</sp
   <section>
     <h2>Why bearcli</h2>
     <div class="grid">
-      <div class="card">
-        <h3>Safe by construction</h3>
-        <p>Reads Bear's SQLite database in <code>read-only</code> mode — Bear doesn't need to be running, and the database is never written.</p>
-      </div>
-      <div class="card">
-        <h3>Writes through Bear</h3>
-        <p>Create, edit, tag, and file notes via Bear's own x-callback-url API, with every change verified against the database.</p>
-      </div>
       <div class="card">
         <h3>Fuzzy search</h3>
         <p>Typo-tolerant, ranked search across titles, tags, and note text — or plain case-insensitive matching by default.</p>
