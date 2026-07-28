@@ -100,13 +100,12 @@ def _ellipsize(value: str, length: int) -> str:
 
 
 def _index_rows(entries: list[dict]) -> list[str]:
-    rows = ["| ID | Modified | Note |", "|---|---|---|"]
+    rows = ["| ID | Modified | | Note |", "|---|---|---|---|"]
     for e in entries:
         title = _ellipsize(e["title"].replace("|", "\\|"), _INDEX_TITLE_LENGTH)
         link = f"[{title}]({e['path']})" if e["path"] else title
-        note_cell = " ".join(part for part in (link, _entry_flags(e)) if part)
         # The short id resolves anywhere a note id is accepted (git-style prefix).
-        rows.append(f"| `{e['id'][:8].lower()}` | {(e['modified'] or '')[:10]} | {note_cell} |")
+        rows.append(f"| `{e['id'][:8].lower()}` | {(e['modified'] or '')[:10]} | {_entry_flags(e)} | {link} |")
     return rows
 
 
