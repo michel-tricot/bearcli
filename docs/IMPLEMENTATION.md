@@ -68,6 +68,13 @@ unencoded absolute paths would produce broken markdown links). Only filenames
 known from `ZSFNOTEFILE` are rewritten — regular URLs in the text are never
 touched.
 
+## Package split: bearlib and bearcli
+
+`bearlib` holds the fundamentals (db, actions, ops, markdown, search,
+secrets) with no UI dependencies; `bearcli` is the CLI/TUI product on top.
+Both ship from the same distribution (`tool.uv.build-backend.module-name`
+lists both). Dependency rule: bearlib never imports from bearcli.
+
 ## CLI design (`cli.py`)
 
 - Commands are grouped gh-style into `note` and `tag` sub-apps (plus

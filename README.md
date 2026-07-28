@@ -159,6 +159,23 @@ teaching AI agents (Claude Code, etc.) how to use `bearcli` ships in
 cp -r skills/bear-notes ~/.claude/skills/   # or a project's .claude/skills/
 ```
 
+## Use as a library
+
+The fundamentals ship as a separate importable package, `bearlib` - reading
+Bear's database, verified writes through Bear's API, search, and secret
+detection - with no CLI or TUI dependencies:
+
+```python
+from bearlib import BearDB
+from bearlib import ops
+
+db = BearDB()  # read-only; Bear does not need to be running
+for note in db.list_notes(tag="work", limit=10):
+    print(note.title, note.tags)
+
+ops.add_tag(db, db.get_note("C44D09DC"), "from-python")  # verified write
+```
+
 ## Development
 
 ```sh

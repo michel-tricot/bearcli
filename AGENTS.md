@@ -30,31 +30,37 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 
 ## Layout
 
-- `src/bearcli/cli/` — Typer CLI package: `common.py` (apps, output types,
-  shared helpers), `notes.py` (the `note` group), `tags.py` (the `tag`
-  group), `export.py`, `misc.py` (stats, ui), `__init__.py` (assembly +
-  top-level aliases shown in the "Shortcuts" help panel). All presentation
-  (Rich tables, JSON/text formats, spinner) lives here.
-- `src/bearcli/actions.py` — write actions via Bear's x-callback-url scheme.
-  No database access; fire-and-forget `open -g bear://...` calls.
-- `src/bearcli/db.py` — database layer. Opens SQLite in read-only URI mode,
-  converts Core Data timestamps, detects the note/tag join table dynamically.
-  No CLI or output concerns.
-- `src/bearcli/export.py` — export to per-note directories with index
-  generation. UI-free; reports progress through an optional callback.
-- `src/bearcli/secrets.py` — detect-secrets-based scanning; export blocks on
-  findings before writing anything (`--allow-secrets` overrides). Redact
-  matches in output; never print the secret itself.
-- `src/bearcli/markdown.py` — Bear markdown conventions (attachment link
-  rewriting, tag markers) shared by CLI, TUI, and export.
-- `src/bearcli/ops.py` — verified write operations shared by CLI and TUI:
-  fire the Bear action, confirm via the database, return the fresh note.
-- `src/bearcli/tui.py` — the interactive `ui` Textual app (search, edit, create, tag; writes via actions.py, verified like the CLI).
-- `src/bearcli/gitsync.py` — `export --push`: commit/merge/push convergence
-  loop treating the destination repo as a one-way mirror (Bear wins in HEAD,
-  overwritten edits stay in history, never force-pushes).
+Two packages ship from this repo: `bearlib` (the fundamentals for talking to
+Bear - no UI dependencies) and `bearcli` (the CLI/TUI product built on it).
+bearlib must never import from bearcli.
 
-See `docs/IMPLEMENTATION.md` for Bear's schema details and export design.
+`src/bearlib/`:
+- `db.py` — database layer. Opens SQLite in read-only URI mode, converts
+  Core Data timestamps, detects the note/tag join table dynamically.
+- `actions.py` — write actions via Bear's x-callback-url scheme. No database
+  access; fire-and-forget `open -g bear://...` calls.
+- `ops.py` — verified write operations: fire the Bear action, confirm via
+  the database, return the fresh note.
+- `markdown.py` — Bear markdown conventions (attachment link rewriting, tag
+  markers).
+- `search.py` — naive and fuzzy (rapidfuzz) search over notes.
+- `secrets.py` — detect-secrets-based scanning and redaction. Redact matches
+  in output; never print the secret itself.
+
+`src/bearcli/`:
+- `cli/` — Typer CLI package: `common.py` (apps, output types, shared
+  helpers), `notes.py` (the `note` group), `tags.py` (the `tag` group),
+  `export.py`, `misc.py` (stats, ui), `__init__.py` (assembly + top-level
+  aliases shown in the "Shortcuts" help panel). All presentation (Rich
+  tables, JSON/text formats, spinner) lives here.
+- `tui.py` — the interactive `ui` Textual app (search, edit, create, tag;
+  writes via bearlib.ops, verified like the CLI).
+- `export.py` — export to per-note directories with index generation.
+  UI-free; reports progress through an optional callback. Export blocks on
+  secret findings before writing anything (`--allow-secrets` overrides).
+- `gitsync.py` — `export --push`: commit/merge/push convergence loop
+  treating the destination repo as a one-way mirror (Bear wins in HEAD,
+  overwritten edits stay in history, never force-pushes).
 
 ## Hard rules
 
