@@ -77,10 +77,16 @@ class Bear:
         return self.db.attachment_stats()
 
     def search(
-        self, query: str, fuzzy: bool = False, min_score: float = 60.0, tag: str | None = None
+        self,
+        query: str,
+        fuzzy: bool = False,
+        min_score: float = 60.0,
+        tag: str | None = None,
+        include_trashed: bool = False,
+        include_archived: bool = False,
     ) -> list[SearchResult]:
         """Search titles, tags, and content; fuzzy is typo-tolerant and ranked."""
-        notes = self.list_notes(limit=None, tag=tag)
+        notes = self.list_notes(limit=None, tag=tag, include_trashed=include_trashed, include_archived=include_archived)
         if fuzzy:
             return search_notes(notes, query, min_score=min_score)
         return naive_search(notes, query)

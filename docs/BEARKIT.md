@@ -86,10 +86,11 @@ count, total_bytes = bear.attachment_stats()
 print(f"{count} attachments, {total_bytes / 1e6:.1f} MB")
 ```
 
-#### `bear.search(query, fuzzy=False, min_score=60.0, tag=None) -> list[SearchResult]`
+#### `bear.search(query, fuzzy=False, min_score=60.0, tag=None, include_trashed=False, include_archived=False) -> list[SearchResult]`
 
 Case-insensitive substring by default; `fuzzy=True` is typo-tolerant and
-ranked (results then carry a `score`).
+ranked (results then carry a `score`). Scope with `tag`, and widen to
+trashed or archived notes with the `include_*` flags.
 
 ```python
 from bearkit import Bear
@@ -99,6 +100,8 @@ for result in bear.search("invoice", tag="work"):
     print(result.note.title, result.snippet)
 for result in bear.search("quarterly planing", fuzzy=True)[:5]:
     print(f"{result.score:5.1f}  {result.note.title}")
+for result in bear.search("old contract", include_archived=True, include_trashed=True):
+    print(result.note.status_line or "active", result.note.title)
 ```
 
 #### `bear.scan_secrets(notes=None) -> ScanReport`

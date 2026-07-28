@@ -69,3 +69,14 @@ def test_facade_search(populated):
     assert [r.note.title for r in hits] == ["Groceries"]
     fuzzy = bear.search("grocries", fuzzy=True)
     assert fuzzy and fuzzy[0].note.title == "Groceries" and fuzzy[0].score is not None
+
+
+def test_facade_search_scope(populated):
+    # The fixture ships "Old stuff" archived and "Gone" trashed.
+    populated.conn.commit()
+    bear = Bear(populated.path)
+    assert not bear.search("Old stuff") and not bear.search("Gone")
+    archived = bear.search("Old stuff", include_archived=True)
+    assert [r.note.title for r in archived] == ["Old stuff"]
+    trashed = bear.search("Gone", include_trashed=True)
+    assert [r.note.title for r in trashed] == ["Gone"]
