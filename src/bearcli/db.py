@@ -157,6 +157,7 @@ class BearDB:
         only: str | None = None,
         include_trashed: bool = False,
         include_archived: bool = False,
+        with_text: bool = False,
     ) -> list[Note]:
         table, note_col, tag_col = self._tags_join
         # Deleted-pending-sync rows linger in the table; never show them.
@@ -205,9 +206,10 @@ class BearDB:
             where.append("(n.ZTITLE LIKE ? OR n.ZTEXT LIKE ?)")
             params += [f"%{search}%", f"%{search}%"]
 
-        query = """
+        text_col = ", n.ZTEXT" if with_text else ""
+        query = f"""
             SELECT n.Z_PK, n.ZUNIQUEIDENTIFIER, n.ZTITLE, n.ZCREATIONDATE,
-                   n.ZMODIFICATIONDATE, n.ZPINNED, n.ZENCRYPTED, n.ZARCHIVED, n.ZTRASHED
+                   n.ZMODIFICATIONDATE, n.ZPINNED, n.ZENCRYPTED, n.ZARCHIVED, n.ZTRASHED{text_col}
             FROM ZSFNOTE n
         """
         if where:
@@ -230,6 +232,7 @@ class BearDB:
                     archived=bool(row["ZARCHIVED"]),
                     trashed=bool(row["ZTRASHED"]),
                     tags=self._tags_for_note(row["Z_PK"]),
+                    text=row["ZTEXT"] if with_text else None,
                 )
             )
         return notes

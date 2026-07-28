@@ -129,6 +129,17 @@ Decisions and their reasons:
   CLI renders it as a Rich status spinner (escaping titles so `[...]` isn't
   parsed as markup).
 
+## Fuzzy search (`search.py`)
+
+rapidfuzz-based, scored per note as the max of title, tag, and body matches
+(weighted 1.0 / 0.95 / 0.9). The one rule that matters: **the query must
+always be the needle**. `partial_ratio` slides the shorter string over the
+longer, so a trivially short title or line ("Bindi", "* D:") scores ~80-90
+against any longer query; scoring is therefore direction-aware (plain `ratio`
+when the target is shorter than the query) and the body is matched as one
+string via `partial_ratio_alignment`, whose alignment also locates the snippet
+line (`default_process` keeps char positions 1:1 apart from the leading trim).
+
 ## Write actions (`actions.py`)
 
 The database is never written — not because of caution alone, but because Bear

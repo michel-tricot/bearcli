@@ -34,6 +34,10 @@ bearcli get C44D09DC-7F0E-43BB-BEB8-67E3A389A448
 bearcli get C44D09DC-... --meta              # with YAML-style frontmatter
 bearcli get C44D09DC-... -f json             # metadata + content + attachments as JSON
 
+# Fuzzy search (typo-tolerant, ranked): titles, tags, and note text
+bearcli search "quarterly planing"
+bearcli search "invoice" --tag work -n 5 --min-score 70
+
 # Attachments: Bear's markdown references them by bare filename; -r rewrites those
 # references to the files' absolute paths on disk
 bearcli get C44D09DC-... -r

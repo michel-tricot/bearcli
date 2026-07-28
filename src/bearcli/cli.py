@@ -22,6 +22,7 @@ from rich.table import Table
 from bearcli import actions
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
 from bearcli.export import export_notes
+from bearcli.search import search_notes
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True)
 console = Console()
@@ -701,3 +702,55 @@ def delete_tag(
         )
     finally:
         db.close()
+
+
+@app.command()
+def search(
+    query: Annotated[str, typer.Argument(help="Search terms (typo-tolerant, matched against titles, tags, and text).")],
+    limit: Annotated[int, typer.Option("--limit", "-n", help="Maximum number of results.")] = 10,
+    min_score: Annotated[float, typer.Option("--min-score", help="Minimum match score (0-100).")] = 60.0,
+    tag_filter: Annotated[str | None, typer.Option("--tag", "-t", help="Restrict to notes with this tag.")] = None,
+    trashed: Annotated[bool, typer.Option("--trashed", help="Include trashed notes.")] = False,
+    archived: Annotated[bool, typer.Option("--archived", help="Include archived notes.")] = False,
+    fmt: Annotated[
+        OutputFormat,
+        typer.Option("--format", "-f", help="Output format: table, json, or text (tab-separated: id, score, title)."),
+    ] = OutputFormat.table,
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Fuzzy-search notes by title, tags, and content, ranked by match quality."""
+    db = _open_db(db_path)
+    try:
+        notes = db.list_notes(
+            limit=None,
+            tag=tag_filter,
+            include_trashed=trashed,
+            include_archived=archived,
+            with_text=True,
+        )
+    finally:
+        db.close()
+
+    results = search_notes(notes, query, min_score=min_score)[:limit]
+
+    if fmt is OutputFormat.json:
+        payload = [{**_note_to_dict(r.note), "score": round(r.score, 1), "snippet": r.snippet} for r in results]
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+    if fmt is OutputFormat.text:
+        for r in results:
+            print(f"{r.note.id}\t{r.score:.0f}\t{r.note.title}")
+        return
+
+    if not results:
+        console.print("No matches.")
+        return
+
+    table = Table(box=box.ROUNDED, header_style="bold")
+    table.add_column("Score", justify="right")
+    table.add_column("ID", style="dim", no_wrap=True)
+    table.add_column("Title", overflow="ellipsis", max_width=40)
+    table.add_column("Match", style="green", overflow="ellipsis", max_width=50)
+    for r in results:
+        table.add_row(f"{r.score:.0f}", r.note.id, r.note.title, r.snippet)
+    console.print(table)
