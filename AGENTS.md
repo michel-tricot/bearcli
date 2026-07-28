@@ -38,7 +38,7 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
   No CLI or output concerns.
 - `src/bearcli/export.py` — export to per-note directories with index
   generation. UI-free; reports progress through an optional callback.
-- `src/bearcli/secrets.py` — regex-based secret detection; export blocks on
+- `src/bearcli/secrets.py` — detect-secrets-based scanning; export blocks on
   findings before writing anything (`--allow-secrets` overrides). Redact
   matches in output; never print the secret itself.
 - `src/bearcli/gitsync.py` — `export --push`: commit/merge/push convergence
