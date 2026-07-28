@@ -24,7 +24,7 @@ from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
 from bearcli.export import export_notes
 from bearcli.search import naive_search, search_notes
 
-app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True)
+app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
 note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=True)
 tag_app = typer.Typer(help="List and manage tags.", no_args_is_help=True)
 app.add_typer(note_app, name="note")
