@@ -122,16 +122,20 @@ def _index_markdown(entries: list[dict]) -> str:
         f"{len(entries)} notes · 📎 attachments · 🔒 encrypted · 🗄 archived",
         "",
     ]
-    pinned = [e for e in entries if e["pinned"]]
+    archived = [e for e in entries if e["archived"]]
+    active = [e for e in entries if not e["archived"]]
+    pinned = [e for e in active if e["pinned"]]
     if pinned:
         lines += ["## 📌 Pinned", ""] + _index_rows(pinned) + [""]
-    rest = [e for e in entries if not e["pinned"]]
+    rest = [e for e in active if not e["pinned"]]
     by_year: dict[str, list[dict]] = {}
     for e in rest:
         year = e["modified"][:4] if e["modified"] else "Undated"
         by_year.setdefault(year, []).append(e)
     for year in sorted(by_year, reverse=True):
         lines += [f"## {year}", ""] + _index_rows(by_year[year]) + [""]
+    if archived:
+        lines += ["## 🗄 Archived", ""] + _index_rows(archived) + [""]
     return "\n".join(lines)
 
 
