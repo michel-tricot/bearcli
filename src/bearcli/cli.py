@@ -19,7 +19,7 @@ from rich.markup import escape as rich_escape
 from rich.table import Table
 
 from bearcli import actions
-from bearcli.db import DEFAULT_DB_PATH, BearDB, Note, note_metadata
+from bearcli.db import DEFAULT_DB_PATH, AmbiguousNoteId, BearDB, Note, note_metadata
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
 from bearcli.markdown import rewrite_attachment_refs
@@ -221,13 +221,10 @@ def get(
     """Print the content of a note."""
     db = _open_db(db_path)
     try:
-        note = db.get_note(note_id)
+        note = _require_note(db, note_id)
     finally:
         db.close()
 
-    if note is None:
-        console.print(f"[red]Error:[/red] no note with id {note_id!r}")
-        raise typer.Exit(1)
     if note.encrypted or note.text is None:
         console.print(f"[red]Error:[/red] note {note.id} is encrypted; its content is unavailable")
         raise typer.Exit(1)
@@ -381,7 +378,13 @@ def _text_or_stdin(text: str | None) -> str | None:
 
 
 def _require_note(db: BearDB, note_id: str) -> Note:
-    note = db.get_note(note_id)
+    try:
+        note = db.get_note(note_id)
+    except AmbiguousNoteId as exc:
+        console.print(f"[red]Error:[/red] note id prefix {exc.prefix!r} matches several notes:")
+        for full_id, title in exc.matches:
+            console.print(f"  {full_id}  {title}")
+        raise typer.Exit(1) from None
     if note is None:
         console.print(f"[red]Error:[/red] no note with id {note_id!r}")
         raise typer.Exit(1)

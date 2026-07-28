@@ -67,6 +67,18 @@ def note_metadata(note: Note) -> dict:
     }
 
 
+class AmbiguousNoteId(Exception):
+    """A note id prefix matched more than one note."""
+
+    def __init__(self, prefix: str, matches: list[tuple[str, str]]):
+        super().__init__(f"note id prefix {prefix!r} is ambiguous")
+        self.prefix = prefix
+        self.matches = matches  # (id, title) pairs
+
+
+MIN_ID_PREFIX = 4
+
+
 class BearDB:
     def __init__(self, path: Path = DEFAULT_DB_PATH):
         if not path.exists():
@@ -236,6 +248,7 @@ class BearDB:
         ]
 
     def get_note(self, note_id: str) -> Note | None:
+        """Fetch a note by id; a unique prefix (>= 4 chars) works like a full id."""
         row = self.conn.execute(
             """
             SELECT Z_PK, ZUNIQUEIDENTIFIER, ZTITLE, ZTEXT, ZCREATIONDATE,
@@ -245,6 +258,22 @@ class BearDB:
             """,
             (note_id,),
         ).fetchone()
+        if row is None and len(note_id) >= MIN_ID_PREFIX:
+            escaped = note_id.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            matches = self.conn.execute(
+                """
+                SELECT Z_PK, ZUNIQUEIDENTIFIER, ZTITLE, ZTEXT, ZCREATIONDATE,
+                       ZMODIFICATIONDATE, ZPINNED, ZENCRYPTED, ZARCHIVED, ZTRASHED
+                FROM ZSFNOTE
+                WHERE ZUNIQUEIDENTIFIER LIKE ? ESCAPE '\\' COLLATE NOCASE AND ZPERMANENTLYDELETED = 0
+                LIMIT 6
+                """,
+                (f"{escaped}%",),
+            ).fetchall()
+            if len(matches) > 1:
+                raise AmbiguousNoteId(note_id, [(r["ZUNIQUEIDENTIFIER"], r["ZTITLE"] or "(untitled)") for r in matches])
+            if matches:
+                row = matches[0]
         if row is None:
             return None
         return self._note_from_row(row, text=row["ZTEXT"], attachments=self._attachments_for_note(row["Z_PK"]))
