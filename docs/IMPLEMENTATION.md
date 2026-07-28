@@ -160,6 +160,16 @@ with spaces), not separate metadata. Adding a tag = appending the marker via
 prefix: removing `work` leaves `#work/ideas` and `#workout` alone). There is
 no per-note tag-removal API; `delete-tag` removes a tag from *all* notes.
 
+Empty tags persist as `ZSFNOTETAG` rows after `rename-tag`/`delete-tag` or
+untagging a tag's last note — Bear hides them rather than deleting them. Tag
+listings exclude zero-count tags by default, and tag-deletion verification
+checks the count reaching zero, not row absence.
+
+`add-file` passes the file base64-encoded inside the URL; macOS caps argument
+size around 1 MB, so attachments are limited to 500 KB raw. `rename` and the
+untag rewrite both go through `add-text&mode=replace_all` (full text including
+the heading); `replace` uses `mode=replace`, which keeps the title.
+
 ## Reference
 
 Prior art: [sandip-mane/bear-github-sync](https://github.com/sandip-mane/bear-github-sync)
