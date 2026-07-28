@@ -20,13 +20,14 @@ bearcli list --tag work                      # includes nested tags like work/id
 bearcli list --modified-after 2026-07-01
 bearcli list --created-after 2026-01-01 --created-before 2026-07-01
 bearcli list --search "invoice"
+bearcli list --only pinned                   # or: encrypted, trashed, archived
 bearcli list --all --trashed --archived
 bearcli list --ids                           # only note identifiers, one per line
 
 # Output formats (--format / -f): table (default), json, text
 bearcli list -f json | jq -r '.[].title'
-bearcli list -f text | cut -f1               # text is tab-separated: id, modified, tags, title
-bearcli list -f text | awk -F'\t' '$3 ~ /work/ {print $4}'
+bearcli list -f text | cut -f1               # text is tab-separated: id, modified, tags, status, title
+bearcli list -f text | awk -F'\t' '$3 ~ /work/ {print $5}'
 
 # Print a note's content by identifier
 bearcli get C44D09DC-7F0E-43BB-BEB8-67E3A389A448

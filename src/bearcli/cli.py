@@ -26,6 +26,13 @@ class OutputFormat(str, Enum):
     text = "text"
 
 
+class OnlyFilter(str, Enum):
+    pinned = "pinned"
+    encrypted = "encrypted"
+    trashed = "trashed"
+    archived = "archived"
+
+
 def _note_to_dict(note: Note, with_text: bool = False) -> dict:
     data = {
         "id": note.id,
@@ -35,6 +42,8 @@ def _note_to_dict(note: Note, with_text: bool = False) -> dict:
         "modified": note.modified.isoformat() if note.modified else None,
         "pinned": note.pinned,
         "encrypted": note.encrypted,
+        "archived": note.archived,
+        "trashed": note.trashed,
     }
     if with_text:
         data["text"] = note.text
@@ -48,6 +57,16 @@ def _note_to_dict(note: Note, with_text: bool = False) -> dict:
             for a in note.attachments
         ]
     return data
+
+
+def _note_status(note: Note) -> str:
+    flags = (
+        ("pinned", note.pinned),
+        ("encrypted", note.encrypted),
+        ("trashed", note.trashed),
+        ("archived", note.archived),
+    )
+    return ",".join(s for s, on in flags if on)
 
 
 def _resolve_attachments(note: Note) -> str:
@@ -112,6 +131,13 @@ def list_notes(
     search: Annotated[
         Optional[str], typer.Option("--search", "-s", help="Filter by text in title or body.")
     ] = None,
+    only: Annotated[
+        Optional[OnlyFilter],
+        typer.Option(
+            "--only",
+            help="Only notes with this status: pinned, encrypted, trashed, or archived.",
+        ),
+    ] = None,
     all_notes: Annotated[
         bool, typer.Option("--all", "-a", help="No limit (overrides --limit).")
     ] = False,
@@ -141,6 +167,7 @@ def list_notes(
             modified_after=_parse_date(modified_after, "--modified-after"),
             modified_before=_parse_date(modified_before, "--modified-before"),
             search=search,
+            only=only.value if only else None,
             include_trashed=trashed,
             include_archived=archived,
         )
@@ -159,7 +186,9 @@ def list_notes(
     if fmt is OutputFormat.text:
         for note in notes:
             modified = note.modified.isoformat() if note.modified else ""
-            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{note.title}")
+            print(
+                f"{note.id}\t{modified}\t{','.join(note.tags)}\t{_note_status(note)}\t{note.title}"
+            )
         return
 
     if not notes:
@@ -170,17 +199,14 @@ def list_notes(
     table.add_column("ID", style="dim", no_wrap=True)
     table.add_column("Title", overflow="ellipsis", max_width=50)
     table.add_column("Tags", style="cyan", overflow="ellipsis", max_width=30)
+    table.add_column("Status", style="yellow", no_wrap=True)
     table.add_column("Modified", no_wrap=True)
     for note in notes:
-        title = note.title
-        if note.pinned:
-            title = f"📌 {title}"
-        if note.encrypted:
-            title = f"🔒 {title}"
         table.add_row(
             note.id,
-            title,
+            note.title,
             ", ".join(note.tags),
+            _note_status(note),
             note.modified.strftime("%Y-%m-%d %H:%M") if note.modified else "",
         )
     console.print(table)

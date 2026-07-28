@@ -47,6 +47,8 @@ class Note:
     modified: datetime | None
     pinned: bool
     encrypted: bool
+    archived: bool
+    trashed: bool
     tags: list[str] = field(default_factory=list)
     text: str | None = None
     attachments: list[Attachment] = field(default_factory=list)
@@ -132,6 +134,7 @@ class BearDB:
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
         search: str | None = None,
+        only: str | None = None,
         include_trashed: bool = False,
         include_archived: bool = False,
     ) -> list[Note]:
@@ -140,9 +143,18 @@ class BearDB:
         where = ["n.ZPERMANENTLYDELETED = 0"]
         params: list[object] = []
 
-        if not include_trashed:
+        if only == "pinned":
+            where.append("n.ZPINNED = 1")
+        elif only == "encrypted":
+            where.append("n.ZENCRYPTED = 1")
+
+        if only == "trashed":
+            where.append("n.ZTRASHED = 1")
+        elif not include_trashed:
             where.append("n.ZTRASHED = 0")
-        if not include_archived:
+        if only == "archived":
+            where.append("n.ZARCHIVED = 1")
+        elif not include_archived:
             where.append("n.ZARCHIVED = 0")
         if tag:
             # Match the tag itself and its nested sub-tags (e.g. "work" matches "work/ideas").
@@ -173,7 +185,7 @@ class BearDB:
 
         query = """
             SELECT n.Z_PK, n.ZUNIQUEIDENTIFIER, n.ZTITLE, n.ZCREATIONDATE,
-                   n.ZMODIFICATIONDATE, n.ZPINNED, n.ZENCRYPTED
+                   n.ZMODIFICATIONDATE, n.ZPINNED, n.ZENCRYPTED, n.ZARCHIVED, n.ZTRASHED
             FROM ZSFNOTE n
         """
         if where:
@@ -193,6 +205,8 @@ class BearDB:
                     modified=core_data_to_datetime(row["ZMODIFICATIONDATE"]),
                     pinned=bool(row["ZPINNED"]),
                     encrypted=bool(row["ZENCRYPTED"]),
+                    archived=bool(row["ZARCHIVED"]),
+                    trashed=bool(row["ZTRASHED"]),
                     tags=self._tags_for_note(row["Z_PK"]),
                 )
             )
@@ -202,7 +216,7 @@ class BearDB:
         row = self.conn.execute(
             """
             SELECT Z_PK, ZUNIQUEIDENTIFIER, ZTITLE, ZTEXT, ZCREATIONDATE,
-                   ZMODIFICATIONDATE, ZPINNED, ZENCRYPTED
+                   ZMODIFICATIONDATE, ZPINNED, ZENCRYPTED, ZARCHIVED, ZTRASHED
             FROM ZSFNOTE
             WHERE ZUNIQUEIDENTIFIER = ? COLLATE NOCASE
             """,
@@ -217,6 +231,8 @@ class BearDB:
             modified=core_data_to_datetime(row["ZMODIFICATIONDATE"]),
             pinned=bool(row["ZPINNED"]),
             encrypted=bool(row["ZENCRYPTED"]),
+            archived=bool(row["ZARCHIVED"]),
+            trashed=bool(row["ZTRASHED"]),
             tags=self._tags_for_note(row["Z_PK"]),
             text=row["ZTEXT"],
             attachments=self._attachments_for_note(row["Z_PK"]),
