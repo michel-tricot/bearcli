@@ -307,6 +307,22 @@ for n in notes:
         print(safe)
 ```
 
+To scrub the secrets out of Bear itself, write the redacted text back with
+`add_text` in `REPLACE_ALL` mode (`note.text` includes the title heading).
+This permanently overwrites the original values - after the replace they only
+exist wherever else you stored them.
+
+```python
+from bearkit import Bear, TextMode, scan_notes
+
+with Bear() as bear:
+    notes = bear.list_notes(limit=None)
+    report = scan_notes(notes)
+    for n in notes:
+        if report.has(n.id):
+            bear.add_text(n, report.redact(n), mode=TextMode.REPLACE_ALL)
+```
+
 ## Markdown - `bearkit.markdown`
 
 ### `rewrite_attachment_refs(note, target_for) -> str`
