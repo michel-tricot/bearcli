@@ -50,6 +50,21 @@ class SecretTextArea(TextArea):
         return line
 
 
+class _TagSuggestions(OptionList):
+    """Suggestion list that hands focus back to the input instead of wrapping."""
+
+    def action_cursor_up(self) -> None:
+        if self.highlighted in (None, 0):
+            self.screen.query_one("#tag-name", Input).focus()
+        else:
+            super().action_cursor_up()
+
+    def action_cursor_down(self) -> None:
+        if self.option_count and self.highlighted == self.option_count - 1:
+            return
+        super().action_cursor_down()
+
+
 class TagScreen(ModalScreen[str | None]):
     """Tag prompt with autocompletion over known tags."""
 
@@ -73,7 +88,7 @@ class TagScreen(ModalScreen[str | None]):
         with Vertical(id="box"):
             yield Label(self.prompt, id="tag-prompt")
             yield Input(placeholder="tag name…", id="tag-name")
-            yield OptionList(id="suggestions")
+            yield _TagSuggestions(id="suggestions")
 
     def on_mount(self) -> None:
         self._suggest("")
@@ -95,6 +110,7 @@ class TagScreen(ModalScreen[str | None]):
             suggestions = self.query_one("#suggestions", OptionList)
             if suggestions.option_count:
                 event.stop()
+                suggestions.highlighted = 0
                 suggestions.focus()
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
