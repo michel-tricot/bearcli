@@ -453,7 +453,6 @@ class BearUI(App):
             # The hidden list dropped focus into the search box during the
             # load; take it back unless the user started typing.
             self._focus_list_after_load = False
-        self._editor_original = ""
             if not self.query_one("#query", Input).value:
                 results.focus()
         self._run_filter(self.search_query)
