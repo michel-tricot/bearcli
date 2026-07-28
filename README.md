@@ -50,6 +50,12 @@ bearcli create "Meeting notes" --text "agenda..." --tag work
 echo "follow-up item" | bearcli append C44D09DC-...
 bearcli archive C44D09DC-...
 bearcli trash C44D09DC-...
+
+# Tags
+bearcli tags                                 # all tags with note counts
+bearcli list --tag work                      # notes with a tag (incl. nested)
+bearcli tag C44D09DC-... "work/ideas"        # add a tag to a note
+bearcli untag C44D09DC-... "work/ideas"      # remove a tag from a note
 ```
 
 Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`).

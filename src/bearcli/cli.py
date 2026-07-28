@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -441,6 +442,103 @@ def archive(
             lambda: (n := db.get_note(note.id)) is not None and n.archived,
             f"Archived note {note.id}",
             "note was not archived; is Bear able to run?",
+        )
+    finally:
+        db.close()
+
+
+@app.command()
+def tags(
+    fmt: Annotated[
+        OutputFormat,
+        typer.Option("--format", "-f", help="Output format: table, json, or text (tab-separated: count, tag)."),
+    ] = OutputFormat.table,
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """List all tags with their note counts."""
+    db = _open_db(db_path)
+    try:
+        all_tags = db.list_tags()
+    finally:
+        db.close()
+
+    if fmt is OutputFormat.json:
+        print(json.dumps([{"tag": t, "notes": c} for t, c in all_tags], indent=2, ensure_ascii=False))
+        return
+    if fmt is OutputFormat.text:
+        for t, c in all_tags:
+            print(f"{c}\t{t}")
+        return
+
+    table = Table(box=box.ROUNDED, header_style="bold")
+    table.add_column("Tag", style="cyan")
+    table.add_column("Notes", justify="right")
+    for t, c in all_tags:
+        table.add_row(t, str(c))
+    console.print(table)
+
+
+def _tag_marker(name: str) -> str:
+    # Tags containing anything beyond word chars, '/', or '-' need the #...# form.
+    return f"#{name}#" if re.search(r"[^\w/-]", name) else f"#{name}"
+
+
+def _has_tag(note: Note, name: str) -> bool:
+    return name.lower() in (t.lower() for t in note.tags)
+
+
+@app.command()
+def tag(
+    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
+    name: Annotated[str, typer.Argument(help="Tag to add (without the leading #).")],
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Add a tag to a note."""
+    db = _open_db(db_path)
+    try:
+        note = _require_note(db, note_id)
+        if _has_tag(note, name):
+            console.print(f"Note {note.id} already has tag {name!r}")
+            return
+        actions.add_text(note.id, _tag_marker(name), mode="append")
+        _verify(
+            lambda: (n := db.get_note(note.id)) is not None and _has_tag(n, name),
+            f"Tagged note {note.id} with {name!r}",
+            "tag did not appear; is Bear able to run?",
+        )
+    finally:
+        db.close()
+
+
+@app.command()
+def untag(
+    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
+    name: Annotated[str, typer.Argument(help="Tag to remove (without the leading #).")],
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Remove a tag from a note (rewrites the note text without the tag marker)."""
+    db = _open_db(db_path)
+    try:
+        note = _require_note(db, note_id)
+        if not _has_tag(note, name) or note.text is None:
+            console.print(
+                f"[red]Error:[/red] note {note.id} has no tag {name!r} (tags: {', '.join(note.tags) or 'none'})"
+            )
+            raise typer.Exit(1)
+        # Strip both marker forms; don't touch longer tags sharing the prefix
+        # (removing "work" must leave "#work/ideas" and "#workout" alone).
+        escaped = re.escape(name)
+        new_text = re.sub(rf"[ \t]?#{escaped}#", "", note.text, flags=re.IGNORECASE)
+        new_text = re.sub(rf"[ \t]?#{escaped}(?![\w/-])", "", new_text, flags=re.IGNORECASE)
+        if new_text == note.text:
+            console.print(f"[red]Error:[/red] could not locate the #{name} marker in the note text")
+            raise typer.Exit(1)
+        new_text = new_text.rstrip("\n") + "\n"
+        actions.add_text(note.id, new_text, mode="replace_all")
+        _verify(
+            lambda: (n := db.get_note(note.id)) is not None and not _has_tag(n, name),
+            f"Removed tag {name!r} from note {note.id}",
+            "tag was not removed; is Bear able to run?",
         )
     finally:
         db.close()

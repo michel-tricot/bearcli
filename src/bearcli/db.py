@@ -95,6 +95,22 @@ class BearDB:
         ).fetchall()
         return [r["ZTITLE"] for r in rows]
 
+    def list_tags(self) -> list[tuple[str, int]]:
+        """All tags with their note counts (excluding trashed/deleted notes)."""
+        table, note_col, tag_col = self._tags_join
+        rows = self.conn.execute(
+            f"""
+            SELECT t.ZTITLE, COUNT(n.Z_PK)
+            FROM ZSFNOTETAG t
+            LEFT JOIN {table} j ON j.{tag_col} = t.Z_PK
+            LEFT JOIN ZSFNOTE n
+                ON n.Z_PK = j.{note_col} AND n.ZTRASHED = 0 AND n.ZPERMANENTLYDELETED = 0
+            GROUP BY t.Z_PK
+            ORDER BY t.ZTITLE
+            """
+        ).fetchall()
+        return [(row[0], row[1]) for row in rows]
+
     def _attachments_for_note(self, note_pk: int) -> list[Attachment]:
         rows = self.conn.execute(
             """

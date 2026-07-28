@@ -148,6 +148,18 @@ Learned from testing: trashing an archived note keeps `ZARCHIVED = 1`
 alongside `ZTRASHED = 1`, and Bear shows such notes in the Trash — so the
 `--only trashed` filter must not apply the default archived-exclusion.
 
+There is no untrash/unarchive: the URL scheme, Shortcuts intents, and
+AppleScript were all checked (including ~26 guessed undocumented action
+names and parameter variants, verified against the database) — restore is
+UI-only in Bear.
+
+Tags are inline markers in the note text (`#tag` or `#multi word#` for names
+with spaces), not separate metadata. Adding a tag = appending the marker via
+`add-text`; removing one = rewriting the full text without the marker via
+`add-text&mode=replace_all` (the regex must not touch longer tags sharing the
+prefix: removing `work` leaves `#work/ideas` and `#workout` alone). There is
+no per-note tag-removal API; `delete-tag` removes a tag from *all* notes.
+
 ## Reference
 
 Prior art: [sandip-mane/bear-github-sync](https://github.com/sandip-mane/bear-github-sync)
