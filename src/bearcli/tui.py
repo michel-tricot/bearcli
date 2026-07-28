@@ -306,6 +306,8 @@ class BrowseApp(App):
     def action_back_or_quit(self) -> None:
         if self.edit_mode:
             self._exit_editor()
+        elif isinstance(self.focused, Input):
+            self.query_one("#results", OptionList).focus()
         else:
             self.exit()
 
