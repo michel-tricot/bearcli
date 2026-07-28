@@ -18,11 +18,6 @@ manage your notes from the terminal.
 
 ---
 
-Bear stores your notes in a local SQLite database. bearcli reads it directly in
-**read-only mode** — Bear doesn't even need to be running — and performs every
-write through Bear's own x-callback-url API, verifying each change against the
-database. Your notes are never touched behind Bear's back.
-
 ## Install
 
 ```sh
