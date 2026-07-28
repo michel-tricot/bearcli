@@ -168,7 +168,7 @@ detection - with no CLI or TUI dependencies:
 ```python
 from bearlib import BearDB, BearWriteError, ops
 
-with BearDB() as db:  # read-only; Bear does not need to be running
+with BearDB() as db:  # read-only
     for note in db.list_notes(tag="work", limit=10):
         print(note.title, note.tags)
 

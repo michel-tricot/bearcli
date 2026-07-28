@@ -1,7 +1,7 @@
 """bearlib: the fundamentals for interacting with the Bear notes app.
 
-- `db` / `BearDB`: read Bear's SQLite database (strictly read-only; Bear
-  does not need to be running). Supports `with BearDB() as db:`.
+- `db` / `BearDB`: read Bear's SQLite database (strictly read-only).
+  Supports `with BearDB() as db:`.
 - `actions`: Bear's x-callback-url write API (fire-and-forget URLs).
 - `ops`: verified write operations - fire an action, confirm it via the
   database, return the fresh note, or raise `BearWriteError`.

@@ -1,4 +1,4 @@
-# bearlib API reference
+# `bearlib` API reference
 
 The fundamentals for interacting with the Bear notes app from Python. macOS
 only; everything runs offline. Install: `pip install bearcli` (both packages
@@ -7,7 +7,7 @@ ship together).
 ```python
 from bearlib import BearDB, NoteFilter, ops
 
-with BearDB() as db:                       # read-only; Bear need not be running
+with BearDB() as db:                       # read-only
     for note in db.list_notes(tag="work"):
         print(note.title, note.tags)
 ```

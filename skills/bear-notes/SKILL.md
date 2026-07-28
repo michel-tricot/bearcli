@@ -5,9 +5,8 @@ description: Read, search, create, and manage the user's Bear notes with the bea
 
 # Working with Bear notes via bearcli
 
-bearcli reads Bear's local database directly (read-only — the Bear app does
-not need to be running) and performs writes through Bear's own API, verifying
-each change. Requires macOS with Bear installed. Install: `uv tool install bearcli`.
+bearcli reads Bear's local database directly (read-only) and performs writes
+through Bear's own API, verifying each change. Requires macOS with Bear installed. Install: `uv tool install bearcli`.
 
 ## Reading and searching
 
