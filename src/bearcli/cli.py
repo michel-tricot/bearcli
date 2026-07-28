@@ -11,7 +11,6 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
-from urllib.parse import quote
 
 import typer
 from rich import box
@@ -20,9 +19,10 @@ from rich.markup import escape as rich_escape
 from rich.table import Table
 
 from bearcli import actions
-from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
+from bearcli.db import DEFAULT_DB_PATH, BearDB, Note, note_metadata
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
+from bearcli.markdown import rewrite_attachment_refs
 from bearcli.search import naive_search, search_notes
 from bearcli.secrets import SecretFinding, redact_text, redaction_map, scan_notes
 
@@ -48,17 +48,7 @@ class OnlyFilter(StrEnum):
 
 
 def _note_to_dict(note: Note, with_text: bool = False) -> dict:
-    data = {
-        "id": note.id,
-        "title": note.title,
-        "tags": note.tags,
-        "created": note.created.isoformat() if note.created else None,
-        "modified": note.modified.isoformat() if note.modified else None,
-        "pinned": note.pinned,
-        "encrypted": note.encrypted,
-        "archived": note.archived,
-        "trashed": note.trashed,
-    }
+    data = note_metadata(note)
     if with_text:
         data["text"] = note.text
         data["attachments"] = [
@@ -84,17 +74,8 @@ def _note_status(note: Note) -> str:
 
 
 def _resolve_attachments(note: Note) -> str:
-    """Rewrite bare attachment filenames in markdown links to absolute paths.
-
-    Bear percent-encodes filenames in the note text (e.g. spaces as %20), so match
-    both the raw and encoded forms; emit encoded paths to keep the links valid.
-    """
-    text = note.text or ""
-    for att in note.attachments:
-        target = quote(str(att.path))
-        for ref in {att.filename, quote(att.filename)}:
-            text = text.replace(f"]({ref})", f"]({target})")
-    return text
+    """Rewrite attachment links to the files' absolute paths on disk."""
+    return rewrite_attachment_refs(note, lambda att: str(att.path))
 
 
 DbPathOption = Annotated[

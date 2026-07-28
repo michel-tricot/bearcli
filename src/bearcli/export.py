@@ -9,9 +9,9 @@ from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import quote
 
-from bearcli.db import BearDB, Note
+from bearcli.db import BearDB, Note, note_metadata
+from bearcli.markdown import rewrite_attachment_refs
 from bearcli.secrets import redact_text
 
 NOTE_FILENAME = "README.md"
@@ -139,12 +139,7 @@ def _write_if_changed(path: Path, content: str) -> bool:
 
 
 def _rewrite_refs(note: Note) -> str:
-    text = note.text or ""
-    for att in note.attachments:
-        target = quote(f"{ATTACHMENTS_DIRNAME}/{att.filename}")
-        for ref in {att.filename, quote(att.filename)}:
-            text = text.replace(f"]({ref})", f"]({target})")
-    return text
+    return rewrite_attachment_refs(note, lambda att: f"{ATTACHMENTS_DIRNAME}/{att.filename}")
 
 
 def export_notes(
@@ -175,20 +170,7 @@ def export_notes(
     entries: list[dict] = []
 
     def add_entry(note: Note, path: str | None, attachments: bool) -> None:
-        entries.append(
-            {
-                "id": note.id,
-                "title": note.title,
-                "path": path,
-                "tags": note.tags,
-                "created": note.created.isoformat() if note.created else None,
-                "modified": note.modified.isoformat() if note.modified else None,
-                "pinned": note.pinned,
-                "encrypted": note.encrypted,
-                "archived": note.archived,
-                "attachments": attachments,
-            }
-        )
+        entries.append({**note_metadata(note), "path": path, "attachments": attachments})
 
     for position, summary in enumerate(summaries, start=1):
         report(f"[{position}/{len(summaries)}] {summary.title}")

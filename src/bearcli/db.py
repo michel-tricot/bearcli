@@ -52,6 +52,21 @@ class Note:
     attachments: list[Attachment] = field(default_factory=list)
 
 
+def note_metadata(note: Note) -> dict:
+    """The canonical serializable metadata for a note (everything but content)."""
+    return {
+        "id": note.id,
+        "title": note.title,
+        "tags": note.tags,
+        "created": note.created.isoformat() if note.created else None,
+        "modified": note.modified.isoformat() if note.modified else None,
+        "pinned": note.pinned,
+        "encrypted": note.encrypted,
+        "archived": note.archived,
+        "trashed": note.trashed,
+    }
+
+
 class BearDB:
     def __init__(self, path: Path = DEFAULT_DB_PATH):
         if not path.exists():
@@ -215,23 +230,10 @@ class BearDB:
             query += " LIMIT ?"
             params.append(limit)
 
-        notes = []
-        for row in self.conn.execute(query, params):
-            notes.append(
-                Note(
-                    id=row["ZUNIQUEIDENTIFIER"],
-                    title=row["ZTITLE"] or "(untitled)",
-                    created=core_data_to_datetime(row["ZCREATIONDATE"]),
-                    modified=core_data_to_datetime(row["ZMODIFICATIONDATE"]),
-                    pinned=bool(row["ZPINNED"]),
-                    encrypted=bool(row["ZENCRYPTED"]),
-                    archived=bool(row["ZARCHIVED"]),
-                    trashed=bool(row["ZTRASHED"]),
-                    tags=self._tags_for_note(row["Z_PK"]),
-                    text=row["ZTEXT"] if with_text else None,
-                )
-            )
-        return notes
+        return [
+            self._note_from_row(row, text=row["ZTEXT"] if with_text else None)
+            for row in self.conn.execute(query, params)
+        ]
 
     def get_note(self, note_id: str) -> Note | None:
         row = self.conn.execute(
@@ -245,6 +247,11 @@ class BearDB:
         ).fetchone()
         if row is None:
             return None
+        return self._note_from_row(row, text=row["ZTEXT"], attachments=self._attachments_for_note(row["Z_PK"]))
+
+    def _note_from_row(
+        self, row: sqlite3.Row, text: str | None = None, attachments: list[Attachment] | None = None
+    ) -> Note:
         return Note(
             id=row["ZUNIQUEIDENTIFIER"],
             title=row["ZTITLE"] or "(untitled)",
@@ -255,6 +262,6 @@ class BearDB:
             archived=bool(row["ZARCHIVED"]),
             trashed=bool(row["ZTRASHED"]),
             tags=self._tags_for_note(row["Z_PK"]),
-            text=row["ZTEXT"],
-            attachments=self._attachments_for_note(row["Z_PK"]),
+            text=text,
+            attachments=attachments or [],
         )
