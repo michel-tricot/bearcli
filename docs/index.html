@@ -56,6 +56,13 @@
   .btn-ghost { border: 1px solid var(--border); color: var(--text); }
   .btn-ghost:hover { border-color: var(--accent); }
 
+  .demo-toggle { display: flex; justify-content: center; gap: 8px; margin-top: 44px; }
+  .demo-toggle button {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 3px 14px; font: 12.5px var(--mono); cursor: pointer;
+  }
+  .demo-toggle button.active { color: var(--text); border-color: var(--accent); }
+  #demo-tui { display: none; width: 100%; border-radius: 12px; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
   .term {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -166,7 +173,11 @@
     </div>
   </header>
 
-  <div class="term">
+  <div class="demo-toggle">
+    <button class="active" data-demo="cli">CLI</button>
+    <button data-demo="tui">Terminal UI</button>
+  </div>
+  <div class="term" id="demo-cli" style="margin-top: 12px;">
     <div class="term-bar">
       <span class="dot"></span><span class="dot"></span><span class="dot"></span>
       <span class="term-title">bearcli</span>
@@ -190,6 +201,18 @@
 <span class="p">❯</span> bearcli export ~/bear-notes --sync --redact-secrets --push
 Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</span>, 1919 unchanged, <span class="y">2 secrets redacted</span>, pushed</pre>
   </div>
+  <img id="demo-tui" src="tui.svg" alt="bearcli ui - search, edit, and tag notes in the terminal">
+  <script>
+    document.querySelectorAll(".demo-toggle button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".demo-toggle button").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        var tui = btn.dataset.demo === "tui";
+        document.getElementById("demo-cli").style.display = tui ? "none" : "block";
+        document.getElementById("demo-tui").style.display = tui ? "block" : "none";
+      });
+    });
+  </script>
 
   <section>
     <h2>Install</h2>
