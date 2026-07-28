@@ -262,7 +262,7 @@ class BearUI(App):
         Binding("a", "archive_note", "Archive"),
         Binding("d", "trash_note", "Trash"),
         Binding("ctrl+s", "save_edit", "Save to Bear"),
-        Binding("tab", "focus_next", "Switch pane"),
+        Binding("tab", "focus_next", "Switch pane", priority=True),
     ]
 
     def __init__(
@@ -315,6 +315,7 @@ class BearUI(App):
             "focus_search",
             "refresh",
             "switch_view",
+            "focus_next",
         }
         if self.edit_mode and action in browse_only:
             return False
