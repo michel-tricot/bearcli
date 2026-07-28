@@ -81,8 +81,8 @@ bearcli search "quarterly planing" --fuzzy   # typo-tolerant, ranked by score
 
 ### Write
 
-Writes go through Bear's x-callback-url API - the database itself is never
-written. These launch the Bear app if needed.
+Writes go through the Bear app itself (launching it if needed), and every
+change is verified before the command reports success.
 
 ```sh
 bearcli create "Meeting notes" --text "agenda..." --tag work
@@ -162,8 +162,8 @@ cp -r skills/bear-notes ~/.claude/skills/   # or a project's .claude/skills/
 ## Use as a library
 
 The fundamentals ship as their own package on PyPI, `bearkit` - reading
-Bear's database, verified writes through Bear's API, search, and secret
-detection - with no CLI or TUI dependencies (`pip install bearkit`):
+notes, verified writes, search, and secret detection - with no CLI or TUI
+dependencies (`pip install bearkit`):
 
 ```python
 from bearkit import Bear, BearWriteError
@@ -190,7 +190,7 @@ uv run ty check src/
 uv run python scripts/check_docs.py          # docs must cover every command
 ```
 
-Design notes and Bear database internals: [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
+Design notes and internals: [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
 Contributor/agent guidelines: [AGENTS.md](AGENTS.md).
 
 ## License
