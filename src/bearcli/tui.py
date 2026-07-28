@@ -9,12 +9,16 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
+from rich.console import Group, RenderableType
+from rich.markdown import Markdown
+from rich.segment import Segment
+from rich.style import Style
 from rich.table import Table as RichTable
 from rich.text import Text
 from textual import events, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Input, Label, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
@@ -26,6 +30,48 @@ from bearcli.secrets import redaction_map, scan_notes
 
 HIGHLIGHT = "black on #dcb96a"
 SECRET_STYLE = "black on #ff9999"
+
+
+class _StyledMatches:
+    """Restyle substring matches inside an already-rendered renderable.
+
+    Rich's Markdown is a renderable, not a Text, so search-term and secret
+    highlighting cannot be applied up front; this wrapper re-styles matching
+    runs in the rendered segments instead.
+    """
+
+    def __init__(self, renderable: RenderableType, rules: list[tuple[str, str, bool]]):
+        self.renderable = renderable
+        self.rules = [(needle, Style.parse(style), cs) for needle, style, cs in rules if needle]
+
+    def __rich_console__(self, console, options):
+        for line in console.render_lines(self.renderable, options, pad=False):
+            text = "".join(seg.text for seg in line)
+            overrides: list[Style | None] = [None] * len(text)
+            for needle, style, case_sensitive in self.rules:
+                hay = text if case_sensitive else text.lower()
+                nd = needle if case_sensitive else needle.lower()
+                start = 0
+                while (found := hay.find(nd, start)) != -1:
+                    overrides[found : found + len(nd)] = [style] * len(nd)
+                    start = found + len(nd)
+            pos = 0
+            for seg in line:
+                if seg.control or not seg.text:
+                    yield seg
+                    continue
+                run_start = 0
+                t = seg.text
+                for k in range(1, len(t) + 1):
+                    if k == len(t) or overrides[pos + k] is not overrides[pos + run_start]:
+                        override = overrides[pos + run_start]
+                        style = seg.style
+                        if override is not None:
+                            style = style + override if style else override
+                        yield Segment(t[run_start:k], style)
+                        run_start = k
+                pos += len(t)
+            yield Segment.line()
 
 
 def _highlighted(value: str, query: str, base_style: str = "") -> Text:
@@ -181,7 +227,8 @@ class BearUI(App):
         with Horizontal():
             yield OptionList(id="results")
             with Vertical(id="side"):
-                yield Static(id="preview-pane")
+                with VerticalScroll(id="preview-pane"):
+                    yield Static(id="preview-content")
                 yield SecretTextArea(language="markdown", id="editor")
         yield Footer()
 
@@ -311,7 +358,7 @@ class BearUI(App):
         if self.shown:
             result_list.highlighted = index if index is not None else 0
         else:
-            self.query_one("#preview-pane", Static).update("")
+            self.query_one("#preview-content", Static).update("")
         pending, self._pending_edit_id = self._pending_edit_id, None
         if pending and not self.edit_mode:
             note = next((n for n in self.shown if n.id == pending), None)
@@ -328,7 +375,7 @@ class BearUI(App):
     def _all_tags(self) -> list[str]:
         return sorted({tag for note in self.notes for tag in note.tags})
 
-    def _preview(self, note: Note) -> Text:
+    def _preview(self, note: Note) -> RenderableType:
         status = note_status(note).replace(",", ", ")
         meta = Text()
         meta.append(note.title + "\n", "bold")
@@ -352,10 +399,15 @@ class BearUI(App):
             meta.append("o", "bold")
             meta.append(".\n", "dim")
         else:
-            body = _highlighted("\n".join((note.text or "").splitlines()[:60]), self.search_query)
-            for value in self.secret_values.get(note.id, []):
-                body.highlight_words([value], SECRET_STYLE, case_sensitive=True)
-            meta.append(body)
+            source = "\n".join((note.text or "").splitlines()[:200])
+            rules: list[tuple[str, str, bool]] = [
+                (word, HIGHLIGHT, False) for word in self.search_query.split() if len(word) >= 2
+            ]
+            rules += [(value, SECRET_STYLE, True) for value in self.secret_values.get(note.id, {})]
+            body: RenderableType = Markdown(source)
+            if rules:
+                body = _StyledMatches(body, rules)
+            return Group(meta, body)
         return meta
 
     def on_option_list_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
@@ -363,7 +415,7 @@ class BearUI(App):
             return
         note = next((n for n in self.shown if n.id == event.option_id), None)
         if note:
-            self.query_one("#preview-pane", Static).update(self._preview(note))
+            self.query_one("#preview-content", Static).update(self._preview(note))
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         self.action_edit_selected()
@@ -377,7 +429,7 @@ class BearUI(App):
         editor.secret_values = list(secrets or [])
         editor.text = text
         editor.border_title = title
-        self.query_one("#preview-pane", Static).styles.display = "none"
+        self.query_one("#preview-pane").styles.display = "none"
         editor.styles.display = "block"
         editor.focus()
         if cursor:
@@ -388,10 +440,10 @@ class BearUI(App):
         self.editing = None
         self.creating = False
         self.query_one("#editor", TextArea).styles.display = "none"
-        self.query_one("#preview-pane", Static).styles.display = "block"
+        self.query_one("#preview-pane").styles.display = "block"
         self.query_one("#results", OptionList).focus()
         if note := self._selected():
-            self.query_one("#preview-pane", Static).update(self._preview(note))
+            self.query_one("#preview-content", Static).update(self._preview(note))
         self.refresh_bindings()
 
     def action_edit_selected(self) -> None:
