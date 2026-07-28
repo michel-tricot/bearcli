@@ -147,7 +147,7 @@ bearcli list -f text | cut -f1               # text is: id, modified, tags, stat
 Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`). The database path
 defaults to Bear's standard location and can be overridden with `--db` or the
 `BEAR_DB_PATH` environment variable. Encrypted notes are listed but their
-content cannot be read.
+content cannot be read. `bearcli --version` prints the installed version.
 
 ## Agent skill
 

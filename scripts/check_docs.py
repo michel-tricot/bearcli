@@ -1,4 +1,4 @@
-"""Fail if any CLI command is missing from README.md or docs/index.html.
+"""Fail if any CLI command is missing from README.md, docs/index.html, or the agent skill.
 
 Walks the Typer app so the command list can never drift from the code. Run by
 CI; run locally with `uv run python scripts/check_docs.py`.
@@ -35,13 +35,16 @@ def commands() -> list[tuple[str | None, str]]:
 def main() -> int:
     readme = (ROOT / "README.md").read_text()
     page = (ROOT / "docs/index.html").read_text()
+    skill = (ROOT / "skills/bear-notes/SKILL.md").read_text()
 
     missing = []
     for group, name in commands():
         full = f"bearcli {group} {name}" if group else f"bearcli {name}"
-        # README must show the command invocation (grouped or alias form).
+        # README and the skill must show the command invocation (grouped or alias form).
         if full not in readme and f"bearcli {name}" not in readme:
             missing.append(f"{full!r} is not mentioned in README.md")
+        if full not in skill and f"bearcli {name}" not in skill:
+            missing.append(f"{full!r} is not mentioned in skills/bear-notes/SKILL.md")
         # The landing page's command table may combine verbs, so require the verb.
         if not re.search(rf"\b{re.escape(name)}\b", page):
             missing.append(f"{full!r} is not mentioned in docs/index.html")
@@ -49,7 +52,7 @@ def main() -> int:
     for problem in missing:
         print(f"ERROR: {problem}")
     if missing:
-        print("\nUpdate README.md and docs/index.html when changing the CLI surface.")
+        print("\nUpdate README.md, docs/index.html, and skills/bear-notes/SKILL.md when changing the CLI surface.")
     return 1 if missing else 0
 
 

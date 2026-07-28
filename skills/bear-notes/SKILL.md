@@ -29,6 +29,8 @@ Always use machine-readable output instead of parsing tables:
 - Note ids accept unique prefixes of 4+ chars (`bearcli get c44d09dc`); an
   ambiguous prefix errors and lists the candidates.
 - `bearcli tag list -f text` — all tags with note counts (count<TAB>tag).
+- `bearcli stats -f json` — library totals: note/tag/attachment counts, words,
+  notes per year, top tags.
 
 ## Writing (launches the Bear app if needed)
 
@@ -75,3 +77,6 @@ are found. Prefer re-running with `--redact-secrets`; only use
 
 - Encrypted notes are listed but their content cannot be read.
 - All commands accept `--db PATH` (env `BEAR_DB_PATH`) to use a database copy.
+- `bearcli ui` is a full-screen interactive app for humans — never launch it
+  from an agent; use the commands above instead.
+- `bearcli --version` prints the installed version if you need to check it.

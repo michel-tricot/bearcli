@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from enum import StrEnum
+from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated
 
@@ -15,6 +16,23 @@ from bearkit import Bear
 from bearkit.db import AmbiguousNoteId, Note, NoteFilter
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
+
+
+def _print_version(value: bool) -> None:
+    if value:
+        print(f"bearcli {version('bearcli')} (bearkit {version('bearkit')})")
+        raise typer.Exit()
+
+
+@app.callback()
+def _main(
+    show_version: Annotated[
+        bool,
+        typer.Option("--version", callback=_print_version, is_eager=True, help="Print the version and exit."),
+    ] = False,
+) -> None:
+    pass
+
 
 note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=True)
 

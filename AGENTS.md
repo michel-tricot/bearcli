@@ -99,10 +99,11 @@ that changes behavior updates the docs in the same commit; do not push and
 "catch up later". Checklist by kind of change:
 
 - Commands/flags added, removed, renamed, or behavior changed → update
-  `README.md` (usage examples, section prose) and `docs/index.html` (command
-  table, feature cards, demo terminal text if output shapes changed). CI runs
-  `scripts/check_docs.py`, but it only verifies command *names* appear —
-  accurate descriptions and examples are on you.
+  `README.md` (usage examples, section prose), `docs/index.html` (command
+  table, feature cards, demo terminal text if output shapes changed), and
+  `skills/bear-notes/SKILL.md` (agent-facing guidance and machine-readable
+  usage). CI runs `scripts/check_docs.py`, but it only verifies command
+  *names* appear — accurate descriptions and examples are on you.
 - TUI keybindings or interactions changed → update the README "Terminal UI"
   key-map paragraph AND the in-app help (`HELP_ROWS`) AND the key bar
   (`BROWSE_KEYS_*`/`EDIT_KEYS_*`) so all three agree.
