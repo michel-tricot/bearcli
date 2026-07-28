@@ -236,20 +236,20 @@ class KeyBar(Horizontal):
 HELP_ROWS = [
     ("Navigate", ""),
     ("↑ ↓", "move through the note list"),
-    ("/", "focus search (esc returns to the list)"),
+    ("/", "focus search"),
     ("tab", "switch pane"),
     ("1 / 2 / 3", "notes / archive / trash view"),
     ("Act on the selected note", ""),
     ("enter or e", "edit in the right panel"),
     ("n or c", "new note"),
-    ("t / T", "add / remove a tag (with autocompletion)"),
+    ("t / T", "add / remove a tag"),
     ("o", "open in Bear"),
     ("a", "archive"),
     ("d", "move to trash"),
-    ("r", "reload everything from Bear"),
+    ("r", "reload from Bear"),
     ("While editing", ""),
     ("ctrl+s", "save to Bear"),
-    ("esc", "discard and return to browsing"),
+    ("esc", "discard changes"),
 ]
 
 
