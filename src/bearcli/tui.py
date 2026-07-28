@@ -6,13 +6,12 @@ by re-reading the database, mirroring the CLI's write commands.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from rich.text import Text
 from textual import work
-from textual.app import App, ComposeResult, SystemCommand
+from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.screen import ModalScreen, Screen
@@ -91,6 +90,7 @@ class BrowseApp(App):
     """Browse, edit, and organize Bear notes from the terminal."""
 
     TITLE = "bearcli"
+    ENABLE_COMMAND_PALETTE = False
 
     CSS = """
     #query { dock: top; margin: 0 1; border: round $primary; }
@@ -108,6 +108,8 @@ class BrowseApp(App):
         Binding("t", "add_tag", "Tag"),
         Binding("T", "remove_tag", "Untag", show=False),
         Binding("o", "open_in_bear", "Open in Bear"),
+        Binding("a", "archive_note", "Archive", show=False),
+        Binding("d", "trash_note", "Trash", show=False),
         Binding("tab", "focus_next", "Switch pane", show=False),
     ]
 
@@ -127,15 +129,6 @@ class BrowseApp(App):
             yield OptionList(id="results")
             yield Static(id="preview-pane")
         yield Footer()
-
-    def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
-        yield from super().get_system_commands(screen)
-        yield SystemCommand("Open in Bear", "Open the selected note in the Bear app", self.action_open_in_bear)
-        yield SystemCommand("New note", "Create a note in Bear", self.action_new_note)
-        yield SystemCommand("Add tag", "Tag the selected note", self.action_add_tag)
-        yield SystemCommand("Remove tag", "Untag the selected note", self.action_remove_tag)
-        yield SystemCommand("Archive note", "Archive the selected note", lambda: self._file_away("archive"))
-        yield SystemCommand("Trash note", "Move the selected note to Bear's trash", lambda: self._file_away("trash"))
 
     # ── searching / listing ──────────────────────────────────────────────
 
@@ -313,6 +306,12 @@ class BrowseApp(App):
             new_text = re.sub(rf"[ \t]?#{escaped}(?![\w/-])", "", new_text, flags=re.IGNORECASE)
             actions.add_text(note.id, new_text.rstrip("\n") + "\n", mode="replace_all")
             self._finish_write(note.id, lambda db: not self._has_tag(db, note.id, tag), f"Removed tag {tag!r}", "Untag")
+
+    def action_archive_note(self) -> None:
+        self._file_away("archive")
+
+    def action_trash_note(self) -> None:
+        self._file_away("trash")
 
     def _file_away(self, operation: str) -> None:
         if note := self._selected():
