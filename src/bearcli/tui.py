@@ -296,7 +296,7 @@ class BearUI(App):
             with Vertical(id="side"):
                 with VerticalScroll(id="preview-pane"):
                     yield Static(id="preview-content")
-                yield SecretTextArea(language="markdown", id="editor")
+                yield SecretTextArea(language="markdown", id="editor", tab_behavior="indent")
         yield Footer()
 
     @property
