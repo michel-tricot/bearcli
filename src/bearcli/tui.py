@@ -116,6 +116,7 @@ class BearUI(App):
         Binding("t", "add_tag", "Tag"),
         Binding("T", "remove_tag", "Untag", show=False),
         Binding("o", "open_in_bear", "Open in Bear"),
+        Binding("r", "refresh", "Refresh", show=False),
         Binding("a", "archive_note", "Archive", show=False),
         Binding("d", "trash_note", "Trash", show=False),
         Binding("ctrl+s", "save_edit", "Save to Bear"),
@@ -165,6 +166,7 @@ class BearUI(App):
             "archive_note",
             "trash_note",
             "focus_search",
+            "refresh",
         }
         if self.edit_mode and action in browse_only:
             return False
@@ -190,9 +192,32 @@ class BearUI(App):
         self.secret_counts = counts
         self._run_filter(self.search_query)
 
+    @work(thread=True, group="refresh")
+    def _refresh_note(self, note_id: str) -> None:
+        """Re-read one note after a write; far cheaper than a full reload."""
+        db = BearDB(self.db_path)
+        try:
+            fresh = db.get_note(note_id)
+        finally:
+            db.close()
+        if fresh is None or fresh.trashed:
+            self.notes = [n for n in self.notes if n.id != note_id]
+            self.secret_counts.pop(note_id, None)
+        else:
+            findings = scan_notes([fresh])
+            if note_id in {n.id for n in self.notes}:
+                self.notes = [fresh if n.id == note_id else n for n in self.notes]
+            else:
+                self.notes.insert(0, fresh)
+            if findings:
+                self.secret_counts[note_id] = len(findings)
+            else:
+                self.secret_counts.pop(note_id, None)
+        self.call_from_thread(self._run_filter, self.search_query)
+
     @work(exclusive=True, thread=True, group="rehydrate")
     def _rehydrate(self) -> None:
-        """Reload every note from the database (after a write, ours or Bear's)."""
+        """Reload every note from the database - manual refresh, also catches edits made in Bear."""
         db = BearDB(self.db_path)
         try:
             notes = db.list_notes(limit=None, tag=self.tag_filter, with_text=True)
@@ -376,6 +401,10 @@ class BearUI(App):
 
             self.push_screen(TagScreen(f"Remove tag from “{note.title}”", note.tags), on_done)
 
+    def action_refresh(self) -> None:
+        self._rehydrate()
+        self.notify("Reloading from Bear…")
+
     def action_archive_note(self) -> None:
         self._file_away("archive")
 
@@ -400,7 +429,7 @@ class BearUI(App):
                 self.notes.insert(0, created)
                 self.call_from_thread(self._run_filter, self.search_query)
                 self.call_from_thread(self.notify, f"Created {created.title!r}")
-                self.call_from_thread(self._rehydrate)
+                self._refresh_note(created.id)
             else:
                 self.call_from_thread(self.notify, "Create failed - is Bear able to run?", severity="error")
         finally:
@@ -435,7 +464,6 @@ class BearUI(App):
             self.notes = [n for n in self.notes if n.id != note.id]
             self.call_from_thread(self._run_filter, self.search_query)
             self.call_from_thread(self.notify, f"{operation.capitalize()}ed {note.title!r}")
-            self.call_from_thread(self._rehydrate)
         else:
             self.call_from_thread(self.notify, f"{operation} failed - is Bear able to run?", severity="error")
 
@@ -465,7 +493,7 @@ class BearUI(App):
     def _finish_write(self, note_id: str, predicate, ok_message: str, operation: str) -> None:
         if self._wait(predicate):
             self.call_from_thread(self.notify, ok_message)
-            self.call_from_thread(self._rehydrate)
+            self._refresh_note(note_id)
         else:
             self.call_from_thread(self.notify, f"{operation} failed - is Bear able to run?", severity="error")
 

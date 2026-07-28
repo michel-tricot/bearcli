@@ -148,3 +148,25 @@ def test_rehydrate_picks_up_new_notes(populated):
             assert results.option_count == len(app.notes)
 
     run(probe())
+
+
+def test_refresh_note_updates_single_entry(populated):
+    db = populated.open()
+    notes = db.list_notes(limit=None, with_text=True)
+
+    async def probe():
+        app = BearUI(notes, db_path=populated.path)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            populated.conn.execute(
+                "UPDATE ZSFNOTE SET ZTEXT = '# Groceries\nkey AKIAIOSFODNN7EXAMPLE\n' "
+                "WHERE ZUNIQUEIDENTIFIER LIKE 'AAAA1111%'"
+            )
+            populated.conn.commit()
+            app._refresh_note("AAAA1111-0000-0000-0000-000000000001")
+            await pilot.pause(0.8)
+            fresh = next(n for n in app.notes if n.id.startswith("AAAA1111"))
+            assert "AKIA" in fresh.text
+            assert app.secret_counts.get(fresh.id, 0) >= 1
+
+    run(probe())
