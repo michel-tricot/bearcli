@@ -21,8 +21,7 @@ manage your notes from the terminal.
 ## Install
 
 ```sh
-uv tool install bearcli        # or: uvx bearcli, pipx install bearcli
-brew install michel-tricot/tap/bearcli   # or via Homebrew
+brew install michel-tricot/tap/bearcli   # or: uv tool install bearcli, pipx install bearcli
 ```
 
 Or from a clone: `uv sync`, then `uv run bearcli --help`.
