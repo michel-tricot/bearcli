@@ -68,11 +68,32 @@ NOTES = [
 ]
 
 
+def _strip_chrome(svg: str) -> str:
+    """Remove Textual's window chrome so the site can supply its own.
+
+    Drops the rounded frame rect, the title text, and the traffic-light
+    circles, then re-crops the viewBox to the terminal content.
+    """
+    import re
+
+    svg = re.sub(r'<rect[^>]*rx="8"/>', "", svg, count=1)
+    svg = re.sub(r'<text class="terminal-\d+-title"[^>]*>[^<]*</text>', "", svg, count=1)
+    svg = re.sub(r'<g transform="translate\(26,22\)">\s*(?:<circle[^>]*/>\s*)+</g>', "", svg, count=1)
+    viewbox = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
+    content = re.search(r'<g transform="translate\((\d+), (\d+)\)"', svg)
+    assert viewbox and content
+    width = float(viewbox.group(1)) - 2 * int(content.group(1))
+    height = float(viewbox.group(2)) - int(content.group(2))
+    svg = svg.replace(viewbox.group(0), f'viewBox="0 0 {width} {height}"', 1)
+    svg = svg.replace(content.group(0), '<g transform="translate(0, 0)"', 1)
+    return svg
+
+
 async def main() -> None:
     app = BearUI(list(NOTES))
     async with app.run_test(size=(110, 30)) as pilot:
         await pilot.pause(1.0)  # let the secrets scan land
-        svg = app.export_screenshot(title="bearcli ui")
+        svg = _strip_chrome(app.export_screenshot())
     out = Path(__file__).parent.parent / "docs" / "tui.svg"
     out.write_text(svg)
     print(f"wrote {out} ({len(svg) // 1024} KB)")

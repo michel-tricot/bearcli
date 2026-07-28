@@ -62,7 +62,7 @@
     border-radius: 6px; padding: 3px 14px; font: 12.5px var(--mono); cursor: pointer;
   }
   .demo-toggle button.active { color: var(--text); border-color: var(--accent); }
-  #demo-tui { display: none; width: 100%; border-radius: 12px; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  #demo-tui { display: none; width: 100%; padding: 6px 8px 10px; box-sizing: border-box; }
   .term {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -177,12 +177,12 @@
     <button class="active" data-demo="cli">CLI</button>
     <button data-demo="tui">Terminal UI</button>
   </div>
-  <div class="term" id="demo-cli" style="margin-top: 12px;">
+  <div class="term" style="margin-top: 12px;">
     <div class="term-bar">
       <span class="dot"></span><span class="dot"></span><span class="dot"></span>
       <span class="term-title">bearcli</span>
     </div>
-    <pre><span class="p">❯</span> bearcli list -n 3
+    <pre id="demo-cli"><span class="p">❯</span> bearcli list -n 3
 <span class="c">╭──────────────────────────────────────┬────────────────────┬───────┬────────┬────────────╮</span>
 <span class="c">│</span> <b>ID</b>                                   <span class="c">│</span> <b>Title</b>              <span class="c">│</span> <b>Tags</b>  <span class="c">│</span> <b>Status</b> <span class="c">│</span> <b>Modified</b>   <span class="c">│</span>
 <span class="c">├──────────────────────────────────────┼────────────────────┼───────┼────────┼────────────┤</span>
@@ -200,8 +200,8 @@
 
 <span class="p">❯</span> bearcli export ~/bear-notes --sync --redact-secrets --push
 Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</span>, 1919 unchanged, <span class="y">2 secrets redacted</span>, pushed</pre>
+    <img id="demo-tui" src="tui.svg" alt="bearcli ui - search, edit, and tag notes in the terminal">
   </div>
-  <img id="demo-tui" src="tui.svg" alt="bearcli ui - search, edit, and tag notes in the terminal">
   <script>
     document.querySelectorAll(".demo-toggle button").forEach(function (btn) {
       btn.addEventListener("click", function () {
