@@ -10,9 +10,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from bearcli import actions
-from bearcli.db import BearDB, Note
-from bearcli.markdown import remove_tag_marker, tag_marker
+from bearlib import actions
+from bearlib.db import BearDB, Note
+from bearlib.markdown import remove_tag_marker, tag_marker
 
 
 def has_tag(note: Note, name: str) -> bool:

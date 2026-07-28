@@ -10,9 +10,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from bearcli.db import BearDB, Note, note_metadata
-from bearcli.markdown import rewrite_attachment_refs
-from bearcli.secrets import redact_text
+from bearlib.db import BearDB, Note, note_metadata
+from bearlib.markdown import rewrite_attachment_refs
+from bearlib.secrets import redact_text
 
 NOTE_FILENAME = "README.md"
 ATTACHMENTS_DIRNAME = "attachments"

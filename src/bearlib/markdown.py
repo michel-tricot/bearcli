@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable
 from urllib.parse import quote
 
-from bearcli.db import Attachment, Note
+from bearlib.db import Attachment, Note
 
 
 def rewrite_attachment_refs(note: Note, target_for: Callable[[Attachment], str]) -> str:

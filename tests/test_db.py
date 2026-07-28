@@ -1,6 +1,6 @@
 import pytest
 
-from bearcli.db import AmbiguousNoteId
+from bearlib.db import AmbiguousNoteId
 
 
 def test_list_excludes_trashed_archived_deleted_by_default(populated):

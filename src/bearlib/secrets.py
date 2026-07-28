@@ -26,7 +26,7 @@ from detect_secrets.core.plugins.util import get_mapping_from_secret_type_to_cla
 from detect_secrets.filters import heuristic
 from detect_secrets.plugins.base import BasePlugin
 
-from bearcli.db import Note
+from bearlib.db import Note
 
 # IPPublicDetector: an IP address in a note is not a credential.
 # The entropy plugins only match quoted strings — replaced by _scan_entropy.

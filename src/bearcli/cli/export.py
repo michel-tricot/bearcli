@@ -16,10 +16,10 @@ from bearcli.cli.common import (
     app,
     console,
 )
-from bearcli.db import DEFAULT_DB_PATH
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
-from bearcli.secrets import SecretFinding, redaction_map, scan_notes
+from bearlib.db import DEFAULT_DB_PATH
+from bearlib.secrets import SecretFinding, redaction_map, scan_notes
 
 
 def _report_secrets(findings: list[SecretFinding]) -> None:

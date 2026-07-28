@@ -9,7 +9,6 @@ import typer
 from rich import box
 from rich.table import Table
 
-from bearcli import actions
 from bearcli.cli.common import (
     DbPathOption,
     OutputFormat,
@@ -18,7 +17,8 @@ from bearcli.cli.common import (
     console,
     tag_app,
 )
-from bearcli.db import DEFAULT_DB_PATH
+from bearlib import actions
+from bearlib.db import DEFAULT_DB_PATH
 
 
 @tag_app.command("list")

@@ -1,5 +1,5 @@
 from bearcli.export import export_notes, slugify
-from bearcli.secrets import redaction_map, scan_notes
+from bearlib.secrets import redaction_map, scan_notes
 
 
 def test_slugify():

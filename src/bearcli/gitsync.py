@@ -15,8 +15,8 @@ import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
-from bearcli.db import BearDB
 from bearcli.export import ExportResult, export_notes
+from bearlib.db import BearDB
 
 
 class GitError(RuntimeError):

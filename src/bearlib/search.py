@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from rapidfuzz import fuzz, utils
 
-from bearcli.db import Note
+from bearlib.db import Note
 
 # Where the match landed determines its weight: a title hit beats an equally
 # good tag hit, which beats a body hit.

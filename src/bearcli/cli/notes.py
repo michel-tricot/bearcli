@@ -11,7 +11,6 @@ import typer
 from rich import box
 from rich.table import Table
 
-from bearcli import actions, ops
 from bearcli.cli.common import (
     DbPathOption,
     OnlyFilter,
@@ -24,10 +23,11 @@ from bearcli.cli.common import (
     console,
     note_app,
 )
-from bearcli.db import DEFAULT_DB_PATH, BearDB, Note, note_status
-from bearcli.markdown import rewrite_attachment_refs
-from bearcli.search import naive_search, search_notes
-from bearcli.secrets import redact_text, redaction_map, scan_notes
+from bearlib import actions, ops
+from bearlib.db import DEFAULT_DB_PATH, BearDB, Note, note_status
+from bearlib.markdown import rewrite_attachment_refs
+from bearlib.search import naive_search, search_notes
+from bearlib.secrets import redact_text, redaction_map, scan_notes
 
 
 def _resolve_attachments(note: Note) -> str:
