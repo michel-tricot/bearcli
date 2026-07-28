@@ -6,6 +6,7 @@ by re-reading the database, mirroring the CLI's write commands.
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -13,8 +14,8 @@ from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal
-from textual.screen import ModalScreen, Screen
+from textual.containers import Horizontal, Vertical
+from textual.screen import ModalScreen
 from textual.widgets import Footer, Input, Label, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
 
@@ -33,54 +34,56 @@ def _highlighted(value: str, query: str, base_style: str = "") -> Text:
     return text
 
 
-class EditScreen(Screen[str | None]):
-    """Full-screen markdown editor; dismisses with the new text, or None."""
-
-    BINDINGS = [
-        Binding("ctrl+s", "save", "Save to Bear"),
-        Binding("escape", "cancel", "Discard"),
-    ]
-
-    CSS = "TextArea { border: round $accent; margin: 0 1; }"
-
-    def __init__(self, title: str, text: str):
-        super().__init__()
-        self.note_title = title
-        self.initial_text = text
-
-    def compose(self) -> ComposeResult:
-        area = TextArea(self.initial_text, language="markdown", id="editor")
-        area.border_title = self.note_title
-        yield area
-        yield Footer()
-
-    def action_save(self) -> None:
-        self.dismiss(self.query_one("#editor", TextArea).text)
-
-    def action_cancel(self) -> None:
-        self.dismiss(None)
-
-
 class TagScreen(ModalScreen[str | None]):
-    """Prompt for a tag name."""
+    """Tag prompt with autocompletion over known tags."""
 
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
     CSS = """
     TagScreen { align: center middle; }
-    #box { width: 50; height: auto; border: round $accent; padding: 1 2; background: $panel; }
+    #box {
+        width: 56; height: auto; padding: 1 2;
+        border: round $accent; background: $panel;
+    }
+    #tag-prompt { color: $text-muted; margin-bottom: 1; }
+    #suggestions { max-height: 8; margin-top: 1; display: none; }
     """
 
-    def __init__(self, prompt: str):
+    def __init__(self, prompt: str, choices: list[str]):
         super().__init__()
         self.prompt = prompt
+        self.choices = choices
 
     def compose(self) -> ComposeResult:
-        with Horizontal(id="box"):
-            yield Label(self.prompt + " ")
-            yield Input(id="tag-name")
+        with Vertical(id="box"):
+            yield Label(self.prompt, id="tag-prompt")
+            yield Input(placeholder="tag name…", id="tag-name")
+            yield OptionList(id="suggestions")
+
+    def on_mount(self) -> None:
+        self._suggest("")
+
+    def _suggest(self, value: str) -> None:
+        matches = [t for t in self.choices if value.lower() in t.lower()][:8]
+        suggestions = self.query_one("#suggestions", OptionList)
+        suggestions.clear_options()
+        suggestions.add_options([Option(t, id=t) for t in matches])
+        suggestions.styles.display = "block" if matches else "none"
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        self._suggest(event.value)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self.dismiss(event.value.strip() or None)
+
+    def on_key(self, event) -> None:
+        if event.key == "down" and self.query_one("#tag-name", Input).has_focus:
+            suggestions = self.query_one("#suggestions", OptionList)
+            if suggestions.option_count:
+                event.stop()
+                suggestions.focus()
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        self.dismiss(event.option_id)
 
     def action_cancel(self) -> None:
         self.dismiss(None)
@@ -95,14 +98,16 @@ class BrowseApp(App):
     CSS = """
     #query { dock: top; margin: 0 1; border: round $primary; }
     #query:focus { border: round $accent; }
-    #results { width: 55%; border: round $panel-lighten-2; }
+    #results { width: 34%; border: round $panel-lighten-2; }
     #results:focus { border: round $accent; }
-    #preview-pane { width: 45%; border: round $panel-lighten-2; padding: 0 1; }
+    #side { width: 66%; }
+    #preview-pane { height: 1fr; border: round $panel-lighten-2; padding: 0 1; }
+    #editor { height: 1fr; border: round $accent; display: none; }
     Horizontal { height: 1fr; margin: 0 1; }
     """
 
     BINDINGS = [
-        Binding("escape", "quit", "Quit"),
+        Binding("escape", "back_or_quit", "Quit"),
         Binding("enter", "edit_selected", "Edit", show=True),
         Binding("n", "new_note", "New"),
         Binding("t", "add_tag", "Tag"),
@@ -110,6 +115,7 @@ class BrowseApp(App):
         Binding("o", "open_in_bear", "Open in Bear"),
         Binding("a", "archive_note", "Archive", show=False),
         Binding("d", "trash_note", "Trash", show=False),
+        Binding("ctrl+s", "save_edit", "Save to Bear"),
         Binding("tab", "focus_next", "Switch pane", show=False),
     ]
 
@@ -120,6 +126,8 @@ class BrowseApp(App):
         self.db_path = db_path
         self.search_query = ""
         self.shown: list[Note] = []
+        self.editing: Note | None = None
+        self.creating = False
 
     # ── layout ────────────────────────────────────────────────────────────
 
@@ -127,8 +135,30 @@ class BrowseApp(App):
         yield Input(placeholder="Search notes…", id="query")
         with Horizontal():
             yield OptionList(id="results")
-            yield Static(id="preview-pane")
+            with Vertical(id="side"):
+                yield Static(id="preview-pane")
+                yield TextArea(language="markdown", id="editor")
         yield Footer()
+
+    @property
+    def edit_mode(self) -> bool:
+        return self.editing is not None or self.creating
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool:
+        browse_only = {
+            "edit_selected",
+            "new_note",
+            "add_tag",
+            "remove_tag",
+            "open_in_bear",
+            "archive_note",
+            "trash_note",
+        }
+        if self.edit_mode and action in browse_only:
+            return False
+        if not self.edit_mode and action == "save_edit":
+            return False
+        return True
 
     # ── searching / listing ──────────────────────────────────────────────
 
@@ -178,6 +208,9 @@ class BrowseApp(App):
             return self.shown[results.highlighted]
         return None
 
+    def _all_tags(self) -> list[str]:
+        return sorted({tag for note in self.notes for tag in note.tags})
+
     def _preview(self, note: Note) -> Text:
         status = ", ".join(
             s for s, on in (("pinned", note.pinned), ("archived", note.archived), ("encrypted", note.encrypted)) if on
@@ -200,6 +233,8 @@ class BrowseApp(App):
         return meta
 
     def on_option_list_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
+        if self.edit_mode:
+            return
         note = next((n for n in self.shown if n.id == event.option_id), None)
         if note:
             self.query_one("#preview-pane", Static).update(self._preview(note))
@@ -207,32 +242,69 @@ class BrowseApp(App):
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         self.action_edit_selected()
 
-    # ── actions ──────────────────────────────────────────────────────────
+    # ── inline editor (right panel) ──────────────────────────────────────
 
-    def action_open_in_bear(self) -> None:
+    def _enter_editor(self, title: str, text: str, cursor: tuple[int, int] | None = None) -> None:
+        editor = self.query_one("#editor", TextArea)
+        editor.text = text
+        editor.border_title = title
+        self.query_one("#preview-pane", Static).styles.display = "none"
+        editor.styles.display = "block"
+        editor.focus()
+        if cursor:
+            editor.cursor_location = cursor
+        self.refresh_bindings()
+
+    def _exit_editor(self) -> None:
+        self.editing = None
+        self.creating = False
+        self.query_one("#editor", TextArea).styles.display = "none"
+        self.query_one("#preview-pane", Static).styles.display = "block"
+        self.query_one("#results", OptionList).focus()
         if note := self._selected():
-            actions.open_note(note.id)
+            self.query_one("#preview-pane", Static).update(self._preview(note))
+        self.refresh_bindings()
 
     def action_edit_selected(self) -> None:
+        if self.edit_mode:
+            return
         note = self._selected()
         if note is None:
             return
         if note.text is None:
             self.notify("Encrypted notes can't be edited here", severity="warning")
             return
-
-        def on_done(new_text: str | None) -> None:
-            if new_text is not None and new_text != note.text:
-                self._save_note(note, new_text)
-
-        self.push_screen(EditScreen(note.title, note.text), on_done)
+        self.editing = note
+        self._enter_editor(note.title, note.text)
 
     def action_new_note(self) -> None:
-        def on_done(new_text: str | None) -> None:
-            if new_text and new_text.strip():
-                self._create_note(new_text)
+        if self.edit_mode:
+            return
+        self.creating = True
+        self._enter_editor("New note", "# \n\n", cursor=(0, 2))
 
-        self.push_screen(EditScreen("New note", "# \n"), on_done)
+    def action_save_edit(self) -> None:
+        if not self.edit_mode:
+            return
+        text = self.query_one("#editor", TextArea).text
+        if self.creating:
+            if text.strip() and text.strip() != "#":
+                self._create_note(text)
+        elif self.editing is not None and text != self.editing.text:
+            self._save_note(self.editing, text)
+        self._exit_editor()
+
+    def action_back_or_quit(self) -> None:
+        if self.edit_mode:
+            self._exit_editor()
+        else:
+            self.exit()
+
+    # ── other actions ────────────────────────────────────────────────────
+
+    def action_open_in_bear(self) -> None:
+        if note := self._selected():
+            actions.open_note(note.id)
 
     def action_add_tag(self) -> None:
         if note := self._selected():
@@ -241,16 +313,22 @@ class BrowseApp(App):
                 if tag:
                     self._tag_note(note, tag, add=True)
 
-            self.push_screen(TagScreen("Add tag:"), on_done)
+            self.push_screen(TagScreen(f"Add tag to “{note.title}”", self._all_tags()), on_done)
 
     def action_remove_tag(self) -> None:
-        if note := self._selected():
+        if (note := self._selected()) and note.tags:
 
             def on_done(tag: str | None) -> None:
                 if tag:
                     self._tag_note(note, tag, add=False)
 
-            self.push_screen(TagScreen("Remove tag:"), on_done)
+            self.push_screen(TagScreen(f"Remove tag from “{note.title}”", note.tags), on_done)
+
+    def action_archive_note(self) -> None:
+        self._file_away("archive")
+
+    def action_trash_note(self) -> None:
+        self._file_away("trash")
 
     # ── write workers (fire x-callback, verify via db, refresh UI) ───────
 
@@ -264,11 +342,11 @@ class BrowseApp(App):
         head, _, body = text.partition("\n")
         title = head.lstrip("# ").strip() or "Untitled"
         started = datetime.now(UTC)
-        actions.create_note(title, text=body or None)
+        actions.create_note(title, text=body.strip() or None)
         db = BearDB(self.db_path)
         try:
 
-            def find(db: BearDB = db) -> Note | None:
+            def find() -> Note | None:
                 return next(
                     (
                         n
@@ -299,19 +377,11 @@ class BrowseApp(App):
             if note.text is None or tag.lower() not in (t.lower() for t in note.tags):
                 self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
                 return
-            import re
-
             escaped = re.escape(tag)
             new_text = re.sub(rf"[ \t]?#{escaped}#", "", note.text, flags=re.IGNORECASE)
             new_text = re.sub(rf"[ \t]?#{escaped}(?![\w/-])", "", new_text, flags=re.IGNORECASE)
             actions.add_text(note.id, new_text.rstrip("\n") + "\n", mode="replace_all")
             self._finish_write(note.id, lambda db: not self._has_tag(db, note.id, tag), f"Removed tag {tag!r}", "Untag")
-
-    def action_archive_note(self) -> None:
-        self._file_away("archive")
-
-    def action_trash_note(self) -> None:
-        self._file_away("trash")
 
     def _file_away(self, operation: str) -> None:
         if note := self._selected():
