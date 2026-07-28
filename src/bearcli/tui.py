@@ -137,17 +137,18 @@ class _TagSuggestions(OptionList):
         super().action_cursor_down()
 
 
-class ConfirmDiscard(ModalScreen[bool]):
-    """Small confirmation shown when leaving the editor with unsaved changes."""
+class ConfirmDiscard(ModalScreen[str | None]):
+    """Confirmation shown when leaving the editor with unsaved changes."""
 
     BINDINGS = [
-        Binding("y", "answer(True)", "Discard"),
-        Binding("n,escape", "answer(False)", "Keep editing"),
+        Binding("s", "answer('save')", "Save"),
+        Binding("y", "answer('discard')", "Discard"),
+        Binding("n,escape", "answer('keep')", "Keep editing"),
     ]
     CSS = """
     ConfirmDiscard { align: center middle; }
     #confirm-box {
-        width: 46; height: auto; padding: 1 2;
+        width: 52; height: auto; padding: 1 2;
         border: round $warning; background: $panel;
     }
     #confirm-keys { color: $text-muted; margin-top: 1; }
@@ -155,11 +156,11 @@ class ConfirmDiscard(ModalScreen[bool]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="confirm-box"):
-            yield Label("Discard unsaved changes?")
-            yield Label("[b]y[/b] discard   [b]n[/b]/[b]esc[/b] keep editing", id="confirm-keys")
+            yield Label("You have unsaved changes.")
+            yield Label("[b]s[/b] save   [b]y[/b] discard   [b]n[/b]/[b]esc[/b] keep editing", id="confirm-keys")
 
-    def action_answer(self, discard: bool) -> None:
-        self.dismiss(discard)
+    def action_answer(self, answer: str) -> None:
+        self.dismiss(answer)
 
 
 class TagScreen(ModalScreen[str | None]):
@@ -672,9 +673,11 @@ class BearUI(App):
         if self.edit_mode:
             if self.query_one("#editor", SecretTextArea).text != self._editor_original:
 
-                def on_answer(discard: bool | None) -> None:
-                    if discard:
+                def on_answer(answer: str | None) -> None:
+                    if answer == "discard":
                         self._exit_editor()
+                    elif answer == "save":
+                        self.action_save_edit()
 
                 self.push_screen(ConfirmDiscard(), on_answer)
             else:

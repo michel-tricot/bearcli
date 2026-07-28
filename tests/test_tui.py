@@ -319,5 +319,16 @@ def test_discard_confirmation():
             await pilot.press("y")
             await pilot.pause()
             assert str(editor.styles.display) == "none" and not app.edit_mode
+            # save option: s saves and exits
+            saves = []
+            app._save_note = lambda note, text: saves.append((note.id, text))
+            await pilot.press("e")
+            await pilot.pause()
+            await pilot.press("z")
+            await pilot.press("escape")
+            await pilot.pause()
+            await pilot.press("s")
+            await pilot.pause()
+            assert saves and not app.edit_mode
 
     run(probe())
