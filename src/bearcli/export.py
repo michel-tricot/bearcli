@@ -1,0 +1,231 @@
+"""Export Bear notes to self-contained per-note directories."""
+
+from __future__ import annotations
+
+import json
+import re
+import shutil
+from dataclasses import dataclass
+from pathlib import Path
+from urllib.parse import quote
+
+from bearcli.db import BearDB, Note
+
+NOTE_FILENAME = "README.md"
+ATTACHMENTS_DIRNAME = "attachments"
+
+
+@dataclass
+class ExportResult:
+    written: int = 0
+    unchanged: int = 0
+    removed: int = 0
+    skipped_encrypted: int = 0
+    index_updated: bool = False
+    index_skipped: bool = False
+
+
+def slugify(title: str, max_length: int = 80) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    return slug[:max_length].rstrip("-") or "untitled"
+
+
+def _frontmatter(note: Note) -> str:
+    lines = [
+        "---",
+        f"id: {note.id}",
+        f"title: {json.dumps(note.title, ensure_ascii=False)}",
+        f"tags: [{', '.join(note.tags)}]",
+    ]
+    if note.created:
+        lines.append(f"created: {note.created.isoformat()}")
+    if note.modified:
+        lines.append(f"modified: {note.modified.isoformat()}")
+    lines.append("---")
+    return "\n".join(lines)
+
+
+def _parse_frontmatter(path: Path) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    try:
+        with path.open() as fh:
+            if fh.readline().rstrip("\n") != "---":
+                return fields
+            for line in fh:
+                line = line.rstrip("\n")
+                if line == "---":
+                    break
+                key, _, value = line.partition(": ")
+                fields[key] = value
+    except OSError:
+        pass
+    return fields
+
+
+INDEX_MARKER = "generated-by: bearcli"
+
+
+def _entry_flags(entry: dict) -> str:
+    flags = ""
+    if entry["attachments"]:
+        flags += "📎"
+    if entry["encrypted"]:
+        flags += "🔒"
+    if entry["archived"]:
+        flags += "🗄"
+    return flags
+
+
+def _index_rows(entries: list[dict]) -> list[str]:
+    rows = ["| Note | Tags | Modified | |", "|---|---|---|---|"]
+    for e in entries:
+        title = e["title"].replace("|", "\\|")
+        link = f"[{title}]({e['path']})" if e["path"] else title
+        modified = (e["modified"] or "")[:10]
+        rows.append(f"| {link} | {', '.join(e['tags'])} | {modified} | {_entry_flags(e)} |")
+    return rows
+
+
+def _index_markdown(entries: list[dict]) -> str:
+    entries = sorted(entries, key=lambda e: e["modified"] or "", reverse=True)
+    lines = [
+        "---",
+        INDEX_MARKER,
+        "---",
+        "",
+        "# Bear notes",
+        "",
+        f"{len(entries)} notes · 📎 attachments · 🔒 encrypted · 🗄 archived",
+        "",
+    ]
+    pinned = [e for e in entries if e["pinned"]]
+    if pinned:
+        lines += ["## 📌 Pinned", ""] + _index_rows(pinned) + [""]
+    rest = [e for e in entries if not e["pinned"]]
+    by_year: dict[str, list[dict]] = {}
+    for e in rest:
+        year = e["modified"][:4] if e["modified"] else "Undated"
+        by_year.setdefault(year, []).append(e)
+    for year in sorted(by_year, reverse=True):
+        lines += [f"## {year}", ""] + _index_rows(by_year[year]) + [""]
+    return "\n".join(lines)
+
+
+def _write_if_changed(path: Path, content: str) -> bool:
+    try:
+        if path.read_text() == content:
+            return False
+    except OSError:
+        pass
+    path.write_text(content)
+    return True
+
+
+def _rewrite_refs(note: Note) -> str:
+    text = note.text or ""
+    for att in note.attachments:
+        target = quote(f"{ATTACHMENTS_DIRNAME}/{att.filename}")
+        for ref in {att.filename, quote(att.filename)}:
+            text = text.replace(f"]({ref})", f"]({target})")
+    return text
+
+
+def export_notes(db: BearDB, dest: Path, sync: bool = False) -> ExportResult:
+    """Write every non-trashed note as dest/<slug>/README.md plus attachments/.
+
+    With sync=True, notes whose id and modified timestamp match the existing
+    README's frontmatter are left untouched. In both modes, directories for
+    notes that no longer exist (or whose title changed slug) are removed; only
+    directories whose README carries an `id:` frontmatter field are ever touched.
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    result = ExportResult()
+
+    summaries = db.list_notes(limit=None, include_archived=True)
+    # Stable ordering so duplicate-title slugs get the same -2/-3 suffixes each run.
+    summaries.sort(key=lambda n: (n.title.lower(), n.id))
+
+    used_slugs: set[str] = set()
+    entries: list[dict] = []
+
+    def add_entry(note: Note, path: str | None, attachments: bool) -> None:
+        entries.append(
+            {
+                "id": note.id,
+                "title": note.title,
+                "path": path,
+                "tags": note.tags,
+                "created": note.created.isoformat() if note.created else None,
+                "modified": note.modified.isoformat() if note.modified else None,
+                "pinned": note.pinned,
+                "encrypted": note.encrypted,
+                "archived": note.archived,
+                "attachments": attachments,
+            }
+        )
+
+    for summary in summaries:
+        if summary.encrypted:
+            result.skipped_encrypted += 1
+            add_entry(summary, None, False)
+            continue
+
+        slug = base_slug = slugify(summary.title)
+        suffix = 2
+        while slug in used_slugs:
+            slug = f"{base_slug}-{suffix}"
+            suffix += 1
+        used_slugs.add(slug)
+
+        note_dir = dest / slug
+        note_path = note_dir / NOTE_FILENAME
+
+        modified_iso = summary.modified.isoformat() if summary.modified else ""
+        if sync and note_path.exists():
+            existing = _parse_frontmatter(note_path)
+            if existing.get("id") == summary.id and existing.get("modified") == modified_iso:
+                result.unchanged += 1
+                add_entry(summary, f"{slug}/", (note_dir / ATTACHMENTS_DIRNAME).exists())
+                continue
+
+        note = db.get_note(summary.id)
+        if note is None or note.text is None:
+            result.skipped_encrypted += 1
+            add_entry(summary, None, False)
+            continue
+
+        note_dir.mkdir(exist_ok=True)
+        note_path.write_text(f"{_frontmatter(note)}\n{_rewrite_refs(note)}\n")
+
+        attach_dir = note_dir / ATTACHMENTS_DIRNAME
+        if attach_dir.exists():
+            shutil.rmtree(attach_dir)
+        for att in note.attachments:
+            if not att.exists:
+                continue
+            attach_dir.mkdir(exist_ok=True)
+            shutil.copy2(att.path, attach_dir / att.filename)
+        result.written += 1
+        add_entry(note, f"{slug}/", attach_dir.exists())
+
+    # Remove directories for notes that were deleted in Bear or whose slug changed.
+    for stale in dest.iterdir():
+        if not stale.is_dir() or stale.name in used_slugs:
+            continue
+        if not _parse_frontmatter(stale / NOTE_FILENAME).get("id"):
+            continue
+        shutil.rmtree(stale)
+        result.removed += 1
+
+    index_path = dest / "README.md"
+    if index_path.exists() and _parse_frontmatter(index_path).get("generated-by") != "bearcli":
+        result.index_skipped = True
+    else:
+        result.index_updated = _write_if_changed(index_path, _index_markdown(entries))
+    result.index_updated |= _write_if_changed(
+        dest / "index.json",
+        json.dumps(sorted(entries, key=lambda e: e["title"].lower()), indent=2, ensure_ascii=False)
+        + "\n",
+    )
+
+    return result

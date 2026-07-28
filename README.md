@@ -37,6 +37,12 @@ bearcli get C44D09DC-... -f json             # metadata + content + attachments 
 # Attachments: Bear's markdown references them by bare filename; -r rewrites those
 # references to the files' absolute paths on disk
 bearcli get C44D09DC-... -r
+
+# Export all notes (including archived) as self-contained directories:
+# <slug>/README.md + <slug>/attachments/, with links rewritten to relative paths
+# (GitHub renders each note when you open its folder)
+bearcli export ~/bear-backup
+bearcli export ~/bear-backup --sync          # only rewrite notes that changed
 ```
 
 Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`).
