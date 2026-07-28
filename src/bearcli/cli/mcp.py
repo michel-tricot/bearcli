@@ -126,8 +126,7 @@ def _run_claude_code(client: Client) -> None:
 def _pick_client(clients: list[Client]) -> Client:
     console.print("Which MCP client should use bearcli?\n")
     for i, c in enumerate(clients, start=1):
-        how = "config updated for you" if c.config_path or c.key == "claude-code" else "shows instructions"
-        console.print(f"  {i}. {c.label} [dim]({how})[/dim]")
+        console.print(f"  {i}. {c.label}")
     console.print()
     choice = typer.prompt("Number")
     try:
