@@ -1,7 +1,8 @@
 """bearlib: the fundamentals for interacting with the Bear notes app.
 
-- `db` / `BearDB`: read Bear's SQLite database (strictly read-only).
-  Supports `with BearDB() as db:`.
+- `Bear`: the facade and recommended entry point - read notes, write them
+  through the Bear app (verified), all from one object.
+- `db` / `BearDB`: the raw read-only database layer (strictly read-only).
 - `actions`: Bear's x-callback-url write API (fire-and-forget URLs).
 - `ops`: verified write operations - fire an action, confirm it via the
   database, return the fresh note, or raise `BearWriteError`.
@@ -14,6 +15,7 @@ on top of it. macOS only (Bear is a macOS/iOS app).
 """
 
 from bearlib import actions, db, markdown, ops, search, secrets
+from bearlib.bear import Bear
 from bearlib.db import (
     DEFAULT_DB_PATH,
     AmbiguousNoteId,
@@ -21,8 +23,6 @@ from bearlib.db import (
     BearDB,
     Note,
     NoteFilter,
-    note_metadata,
-    pretty_status,
 )
 from bearlib.ops import BearWriteError, TagMarkerNotFound, TextMode
 from bearlib.search import SearchResult, naive_search, search_notes
@@ -32,6 +32,7 @@ __all__ = [
     "DEFAULT_DB_PATH",
     "AmbiguousNoteId",
     "Attachment",
+    "Bear",
     "BearDB",
     "BearWriteError",
     "Note",
@@ -44,8 +45,6 @@ __all__ = [
     "db",
     "markdown",
     "naive_search",
-    "note_metadata",
-    "pretty_status",
     "ops",
     "redact_text",
     "redaction_map",

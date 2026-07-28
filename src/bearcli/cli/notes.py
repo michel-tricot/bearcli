@@ -25,7 +25,7 @@ from bearcli.cli.common import (
     note_app,
 )
 from bearlib import actions, ops
-from bearlib.db import DEFAULT_DB_PATH, BearDB, Note, pretty_status
+from bearlib.db import DEFAULT_DB_PATH, BearDB, Note
 from bearlib.markdown import rewrite_attachment_refs
 from bearlib.search import naive_search, search_notes
 from bearlib.secrets import redact_text, redaction_map, scan_notes
@@ -99,7 +99,7 @@ def list_notes(
     if fmt is OutputFormat.text:
         for note in notes:
             modified = note.modified.isoformat() if note.modified else ""
-            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{pretty_status(note)}\t{note.title}")
+            print(f"{note.id}\t{modified}\t{','.join(note.tags)}\t{note.status_line}\t{note.title}")
         return
 
     if not notes:
@@ -117,7 +117,7 @@ def list_notes(
             note.id,
             note.title,
             ", ".join(note.tags),
-            pretty_status(note),
+            note.status_line,
             note.modified.strftime("%Y-%m-%d %H:%M") if note.modified else "",
         )
     console.print(table)
@@ -309,7 +309,7 @@ def tag(
     db = _open_db(db_path)
     try:
         note = _require_note(db, note_id)
-        if ops.has_tag(note, name):
+        if note.has_tag(name):
             console.print(f"Note {note.id} already has tag {name!r}")
             return
         _perform(
@@ -331,7 +331,7 @@ def untag(
     db = _open_db(db_path)
     try:
         note = _require_note(db, note_id)
-        if not ops.has_tag(note, name) or note.text is None:
+        if not note.has_tag(name) or note.text is None:
             console.print(
                 f"[red]Error:[/red] note {note.id} has no tag {name!r} (tags: {', '.join(note.tags) or 'none'})"
             )

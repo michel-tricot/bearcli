@@ -13,11 +13,10 @@ from bearcli.cli.common import (
     DbPathOption,
     OutputFormat,
     _open_db,
-    _verify,
     console,
     tag_app,
 )
-from bearlib import actions
+from bearlib import ops
 from bearlib.db import DEFAULT_DB_PATH
 
 
@@ -68,12 +67,12 @@ def rename_tag(
         if name.lower() not in existing:
             console.print(f"[red]Error:[/red] no tag named {name!r}")
             raise typer.Exit(1)
-        actions.rename_tag(name, new_name)
-        _verify(
-            lambda: new_name.lower() in {t.lower() for t, _ in db.list_tags()},
-            f"Renamed tag {name!r} to {new_name!r}",
-            "tag was not renamed; is Bear able to run?",
-        )
+        try:
+            ops.rename_tag(db, name, new_name)
+        except ops.BearWriteError:
+            console.print("[red]Error:[/red] tag was not renamed; is Bear able to run?")
+            raise typer.Exit(1) from None
+        console.print(f"Renamed tag {name!r} to {new_name!r}")
     finally:
         db.close()
 
@@ -93,12 +92,11 @@ def delete_tag(
             raise typer.Exit(1)
         if not yes:
             typer.confirm(f"Remove tag '{name}' from {counts[name.lower()]} note(s)?", abort=True)
-        actions.delete_tag(name)
-        # Bear keeps an empty tag row behind, so verify the count reaches zero.
-        _verify(
-            lambda: dict((t.lower(), c) for t, c in db.list_tags(include_empty=True)).get(name.lower(), 0) == 0,
-            f"Deleted tag {name!r}",
-            "tag was not deleted; is Bear able to run?",
-        )
+        try:
+            ops.delete_tag(db, name)
+        except ops.BearWriteError:
+            console.print("[red]Error:[/red] tag was not deleted; is Bear able to run?")
+            raise typer.Exit(1) from None
+        console.print(f"Deleted tag {name!r}")
     finally:
         db.close()

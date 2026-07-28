@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from bearlib.db import BearDB, Note, note_metadata
+from bearlib.db import BearDB, Note
 from bearlib.markdown import rewrite_attachment_refs
 from bearlib.secrets import redact_text
 
@@ -180,7 +180,7 @@ def export_notes(
     entries: list[dict] = []
 
     def add_entry(note: Note, path: str | None, attachments: bool) -> None:
-        entries.append({**note_metadata(note), "path": path, "attachments": attachments})
+        entries.append({**note.to_dict(), "path": path, "attachments": attachments})
 
     for position, summary in enumerate(summaries, start=1):
         report(f"[{position}/{len(summaries)}] {summary.title}")

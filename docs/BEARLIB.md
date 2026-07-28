@@ -5,20 +5,28 @@ only; everything runs offline. Install: `pip install bearcli` (both packages
 ship together). The package is typed (`py.typed`). Every sample below is
 self-contained.
 
-## Reading - `bearlib.db`
+`Bear` is the interface: one object for reading and verified writing. The
+raw layers stay available underneath (`bear.db`, `bearlib.ops`,
+`bearlib.actions`) but most code should never need them.
 
-### `BearDB(path=DEFAULT_DB_PATH)`
+## `Bear`
 
-Opens Bear's SQLite database read-only. Context manager, or call `close()`.
+Opens Bear's SQLite database read-only; writes go through the Bear app's
+x-callback API (launching it if needed - the database itself is never
+written) and are verified against the database before returning. Context
+manager, or call `close()`.
 
 ```python
-from bearlib import BearDB
+from bearlib import Bear
 
-with BearDB() as db:
-    print(len(db.list_notes()))
+with Bear() as bear:
+    for note in bear.list_notes(tag="work", limit=10):
+        print(note.title)
 ```
 
-### `db.list_notes(...) -> list[Note]`
+### Reading
+
+#### `bear.list_notes(...) -> list[Note]`
 
 Notes, most recently modified first. Trashed/archived are excluded unless
 included explicitly or selected via `only` (a `NoteFilter` or its string
@@ -27,142 +35,124 @@ value). Text is always loaded.
 ```python
 from datetime import datetime
 
-from bearlib import BearDB, NoteFilter
+from bearlib import Bear, NoteFilter
 
-db = BearDB()
-recent = db.list_notes(limit=10)
-work = db.list_notes(tag="work")  # includes nested tags like work/ideas
-pinned = db.list_notes(only=NoteFilter.PINNED)
-everything = db.list_notes(include_trashed=True, include_archived=True)
-this_month = db.list_notes(modified_after=datetime(2026, 7, 1))
+bear = Bear()
+recent = bear.list_notes(limit=10)
+work = bear.list_notes(tag="work")  # includes nested tags like work/ideas
+pinned = bear.list_notes(only=NoteFilter.PINNED)
+everything = bear.list_notes(include_trashed=True, include_archived=True)
+this_month = bear.list_notes(modified_after=datetime(2026, 7, 1))
 ```
 
-### `db.get_note(note_id) -> Note | None`
+#### `bear.get_note(note_id) -> Note | None`
 
 Fetch by id; a unique prefix of 4+ characters works like a full id. Loads
 attachments. Raises `AmbiguousNoteId` when the prefix matches several notes.
 
 ```python
-from bearlib import AmbiguousNoteId, BearDB
+from bearlib import AmbiguousNoteId, Bear
 
-db = BearDB()
+bear = Bear()
 try:
-    note = db.get_note("c44d09dc")  # case-insensitive prefix
+    note = bear.get_note("c44d09dc")  # case-insensitive prefix
     print(note.title if note else "no such note")
 except AmbiguousNoteId as exc:
     for full_id, title in exc.matches:
         print(full_id, title)
 ```
 
-### `db.list_tags(include_empty=False) -> list[tuple[str, int]]`
+#### `bear.list_tags(include_empty=False) -> list[tuple[str, int]]`
 
 All tags with their note counts. Bear keeps empty tag rows around; they are
 hidden unless `include_empty=True`.
 
 ```python
-from bearlib import BearDB
+from bearlib import Bear
 
-db = BearDB()
-for name, count in db.list_tags():
+bear = Bear()
+for name, count in bear.list_tags():
     print(f"{count:4}  {name}")
 ```
 
-### `db.attachment_stats() -> tuple[int, int]`
+#### `bear.attachment_stats() -> tuple[int, int]`
 
 Count and total bytes of attachments on non-trashed notes.
 
 ```python
-from bearlib import BearDB
+from bearlib import Bear
 
-db = BearDB()
-count, total_bytes = db.attachment_stats()
+bear = Bear()
+count, total_bytes = bear.attachment_stats()
 print(f"{count} attachments, {total_bytes / 1e6:.1f} MB")
 ```
 
-### `Note`, `note_metadata(note)`, `pretty_status(note)`
+### Writing
 
-`Note` fields: `id`, `title`, `text` (None **iff encrypted**), `created` /
-`modified` (timezone-aware), `pinned` / `encrypted` / `archived` / `trashed`,
-`tags`, `attachments` (each with `filename`, `path`, `size`, `exists`).
+Verified writes raise `BearWriteError` if Bear doesn't observably apply the
+change within `bearlib.ops.VERIFY_TIMEOUT` seconds.
 
-```python
-from bearlib import BearDB, note_metadata, pretty_status
-
-db = BearDB()
-note = db.list_notes(limit=1)[0]
-print(note_metadata(note))  # serializable dict: id, title, tags, ISO dates, flags
-print(pretty_status(note))  # e.g. "pinned,archived" ("" when none)
-```
-
-## Writing - `bearlib.ops`
-
-Each function fires a Bear x-callback action (launching the Bear app if
-needed - the database itself is never written), verifies the outcome by
-re-reading the database, and returns the fresh `Note`. If Bear doesn't
-observably apply the change within `ops.VERIFY_TIMEOUT` seconds, it raises
-`BearWriteError`.
-
-### `ops.create_note(db, title, text, tags=None) -> Note`
+#### `bear.create_note(title, text=None, tags=None) -> Note`
 
 ```python
-from bearlib import BearDB, BearWriteError, ops
+from bearlib import Bear, BearWriteError
 
-db = BearDB()
+bear = Bear()
 try:
-    created = ops.create_note(db, "Meeting notes", "agenda item one", tags=["work"])
+    created = bear.create_note("Meeting notes", "agenda item one", tags=["work"])
     print(created.id)
 except BearWriteError:
     print("Bear did not apply the change")
 ```
 
-### `ops.add_text(db, note, text, mode=TextMode.APPEND) -> Note`
+#### `bear.add_text(note, text, mode=TextMode.APPEND) -> Note`
 
 `TextMode`: `APPEND`, `PREPEND`, `REPLACE` (body only, keeps the title),
 `REPLACE_ALL` (including the title). Strings are accepted and validated.
 
 ```python
-from bearlib import BearDB, TextMode, ops
+from bearlib import Bear, TextMode
 
-db = BearDB()
-note = db.get_note("C44D09DC")
+bear = Bear()
+note = bear.get_note("C44D09DC")
 assert note is not None
-ops.add_text(db, note, "follow-up item")
-ops.add_text(db, note, "new body", mode=TextMode.REPLACE)
+bear.add_text(note, "follow-up item")
+bear.add_text(note, "new body", mode=TextMode.REPLACE)
 ```
 
-### `ops.rename(db, note, new_title) -> Note`
+#### `bear.rename(note, new_title) -> Note`
 
 Replaces the heading line, keeping the body.
 
 ```python
-from bearlib import BearDB, ops
+from bearlib import Bear
 
-db = BearDB()
-note = db.get_note("C44D09DC")
+bear = Bear()
+note = bear.get_note("C44D09DC")
 assert note is not None
-renamed = ops.rename(db, note, "Better title")
+renamed = bear.rename(note, "Better title")
 assert renamed.title == "Better title"
 ```
 
-### `ops.add_tag(db, note, name)` / `ops.remove_tag(db, note, name)`
+#### `bear.add_tag(note, name)` / `bear.remove_tag(note, name)`
 
 Tags are inline markers in the note text; `remove_tag` rewrites the text
 without the marker and raises `TagMarkerNotFound` when none is present.
 
 ```python
-from bearlib import BearDB, TagMarkerNotFound, ops
+from bearlib import Bear, TagMarkerNotFound
 
-db = BearDB()
-note = db.get_note("C44D09DC")
+bear = Bear()
+note = bear.get_note("C44D09DC")
 assert note is not None
-tagged = ops.add_tag(db, note, "work/ideas")
+tagged = bear.add_tag(note, "work/ideas")
 try:
-    ops.remove_tag(db, tagged, "work/ideas")
+    bear.remove_tag(tagged, "work/ideas")
 except TagMarkerNotFound:
     print("note has no such tag")
 ```
 
-### `ops.attach_file(db, note, filename, file_b64) -> Note`
+#### `bear.attach_file(note, filename, file_b64) -> Note`
 
 The file travels base64-encoded inside a URL; keep it under ~500 KB.
 
@@ -170,69 +160,68 @@ The file travels base64-encoded inside a URL; keep it under ~500 KB.
 import base64
 from pathlib import Path
 
-from bearlib import BearDB, ops
+from bearlib import Bear
 
-db = BearDB()
-note = db.get_note("C44D09DC")
+bear = Bear()
+note = bear.get_note("C44D09DC")
 assert note is not None
 payload = base64.b64encode(Path("chart.png").read_bytes()).decode()
-ops.attach_file(db, note, "chart.png", payload)
+bear.attach_file(note, "chart.png", payload)
 ```
 
-### `ops.trash(db, note)` / `ops.archive(db, note)`
+#### `bear.trash(note)` / `bear.archive(note)`
 
 One-way: Bear has no untrash/unarchive API (restore is UI-only).
 
 ```python
-from bearlib import BearDB, ops
+from bearlib import Bear
 
-db = BearDB()
-note = db.get_note("C44D09DC")
+bear = Bear()
+note = bear.get_note("C44D09DC")
 assert note is not None
-ops.archive(db, note)
+bear.archive(note)
 ```
 
-### `ops.has_tag(note, name) -> bool`
+#### `bear.rename_tag(name, new_name)` / `bear.delete_tag(name)`
+
+Across all notes; verified via the tag list.
 
 ```python
-from bearlib import BearDB, ops
+from bearlib import Bear
 
-db = BearDB()
-note = db.get_note("C44D09DC")
-assert note is not None
-if not ops.has_tag(note, "inbox"):
-    ops.add_tag(db, note, "inbox")
+bear = Bear()
+bear.rename_tag("old-name", "new-name")
+bear.delete_tag("obsolete")
 ```
 
-## Raw actions - `bearlib.actions`
+### The Bear app
 
-The fire-and-forget x-callback layer: no database, no verification. Prefer
-`ops` unless you explicitly don't want to wait.
+#### `bear.open_in_bear(note, new_window=False)`
 
 ```python
-from bearlib import BearDB, actions
+from bearlib import Bear
 
-db = BearDB()
-note = db.list_notes(limit=1)[0]
-actions.open_note(note.id)  # bring the note up in Bear
-actions.create_note("Quick capture", text="from a script")
-actions.add_text(note.id, "appended", mode="append")
-actions.trash_note(note.id)
-actions.archive_note(note.id)
-actions.rename_tag("old-name", "new-name")  # across all notes
-actions.delete_tag("obsolete")  # across all notes
+bear = Bear()
+note = bear.list_notes(limit=1)[0]
+bear.open_in_bear(note)
 ```
 
-`actions.wait_for(predicate, timeout=6.0, interval=0.3) -> bool` polls until
-the predicate is true - useful for hand-rolled verification:
+## `Note`
+
+Fields: `id`, `title`, `text` (None **iff encrypted**), `created` /
+`modified` (timezone-aware), `pinned` / `encrypted` / `archived` / `trashed`,
+`tags`, `attachments` (each with `filename`, `path`, `size`, `exists`).
+
+### `note.has_tag(name)`, `note.to_dict()`, `note.status_line`
 
 ```python
-from bearlib import BearDB, actions
+from bearlib import Bear
 
-db = BearDB()
-note = db.list_notes(limit=1)[0]
-actions.trash_note(note.id)
-applied = actions.wait_for(lambda: (n := db.get_note(note.id)) is not None and n.trashed)
+bear = Bear()
+note = bear.list_notes(limit=1)[0]
+print(note.has_tag("work"))  # case-insensitive, exact tag name
+print(note.to_dict())  # serializable: id, title, tags, ISO dates, flags
+print(note.status_line)  # e.g. "pinned,archived" ("" when none)
 ```
 
 ## Search - `bearlib.search`
@@ -243,10 +232,10 @@ Case-insensitive substring over titles, tags, and text; preserves input
 order; `score` is None.
 
 ```python
-from bearlib import BearDB, naive_search
+from bearlib import Bear, naive_search
 
-db = BearDB()
-notes = db.list_notes(limit=None)
+bear = Bear()
+notes = bear.list_notes(limit=None)
 for result in naive_search(notes, "invoice"):
     print(result.note.title, result.snippet)
 ```
@@ -257,10 +246,10 @@ Typo-tolerant and ranked (rapidfuzz); results carry a `score` and a
 `snippet` locating the match.
 
 ```python
-from bearlib import BearDB, search_notes
+from bearlib import Bear, search_notes
 
-db = BearDB()
-notes = db.list_notes(limit=None)
+bear = Bear()
+notes = bear.list_notes(limit=None)
 for result in search_notes(notes, "quarterly planing")[:5]:
     print(f"{result.score:5.1f}  {result.note.title}  {result.snippet}")
 ```
@@ -274,10 +263,10 @@ credentials. `SecretFinding.excerpt` is safe to display;
 `SecretFinding.secret` holds the raw value for redaction - never print it.
 
 ```python
-from bearlib import BearDB, scan_notes
+from bearlib import Bear, scan_notes
 
-db = BearDB()
-findings = scan_notes(db.list_notes(limit=None))
+bear = Bear()
+findings = scan_notes(bear.list_notes(limit=None))
 for f in findings:
     print(f.note_title, f.rule, f.line, f.excerpt)
 ```
@@ -285,10 +274,10 @@ for f in findings:
 ### `redaction_map(findings)` and `redact_text(text, secrets)`
 
 ```python
-from bearlib import BearDB, redact_text, redaction_map, scan_notes
+from bearlib import Bear, redact_text, redaction_map, scan_notes
 
-db = BearDB()
-notes = db.list_notes(limit=None)
+bear = Bear()
+notes = bear.list_notes(limit=None)
 by_note = redaction_map(scan_notes(notes))  # {note_id: {secret_value: rule}}
 for n in notes:
     if n.id in by_note and n.text is not None:
@@ -304,11 +293,11 @@ Rewrites bare attachment links to per-attachment targets, handling Bear's
 percent-encoding. Regular URLs are never touched.
 
 ```python
-from bearlib import BearDB
+from bearlib import Bear
 from bearlib.markdown import rewrite_attachment_refs
 
-db = BearDB()
-note = db.list_notes(limit=1)[0]
+bear = Bear()
+note = bear.list_notes(limit=1)[0]
 absolute = rewrite_attachment_refs(note, lambda att: str(att.path))
 relative = rewrite_attachment_refs(note, lambda att: f"files/{att.filename}")
 ```
@@ -326,3 +315,11 @@ assert tag_marker("two words") == "#two words#"
 stripped = remove_tag_marker("body #work\n", "work")  # "body\n"
 assert remove_tag_marker("plain text", "work") is None
 ```
+
+## Advanced: the raw layers
+
+- `BearDB` - the read-only database handle behind `bear.db`; same reading
+  methods as the facade.
+- `bearlib.ops` - the verified-write engine; functions take `(db, note, ...)`.
+- `bearlib.actions` - fire-and-forget x-callback calls, no verification;
+  `actions.wait_for(predicate)` helps hand-roll your own.

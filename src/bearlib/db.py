@@ -63,31 +63,34 @@ class Note:
     """The full markdown content; None if and only if the note is encrypted."""
     attachments: list[Attachment] = field(default_factory=list)
 
+    def has_tag(self, name: str) -> bool:
+        """Whether the note carries the tag (case-insensitive, exact name)."""
+        return name.lower() in (t.lower() for t in self.tags)
 
-def pretty_status(note: Note) -> str:
-    """Comma-joined status flags, e.g. "pinned,archived"."""
-    flags = (
-        ("pinned", note.pinned),
-        ("encrypted", note.encrypted),
-        ("trashed", note.trashed),
-        ("archived", note.archived),
-    )
-    return ",".join(name for name, on in flags if on)
+    def to_dict(self) -> dict:
+        """Serializable metadata: id, title, tags, ISO dates, status flags."""
+        return {
+            "id": self.id,
+            "title": self.title,
+            "tags": self.tags,
+            "created": self.created.isoformat() if self.created else None,
+            "modified": self.modified.isoformat() if self.modified else None,
+            "pinned": self.pinned,
+            "encrypted": self.encrypted,
+            "archived": self.archived,
+            "trashed": self.trashed,
+        }
 
-
-def note_metadata(note: Note) -> dict:
-    """The canonical serializable metadata for a note (everything but content)."""
-    return {
-        "id": note.id,
-        "title": note.title,
-        "tags": note.tags,
-        "created": note.created.isoformat() if note.created else None,
-        "modified": note.modified.isoformat() if note.modified else None,
-        "pinned": note.pinned,
-        "encrypted": note.encrypted,
-        "archived": note.archived,
-        "trashed": note.trashed,
-    }
+    @property
+    def status_line(self) -> str:
+        """Comma-joined status flags for display, e.g. "pinned,archived"."""
+        flags = (
+            ("pinned", self.pinned),
+            ("encrypted", self.encrypted),
+            ("trashed", self.trashed),
+            ("archived", self.archived),
+        )
+        return ",".join(name for name, on in flags if on)
 
 
 class AmbiguousNoteId(Exception):

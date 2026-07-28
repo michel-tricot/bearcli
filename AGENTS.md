@@ -35,6 +35,10 @@ Bear - no UI dependencies) and `bearcli` (the CLI/TUI product built on it).
 bearlib must never import from bearcli.
 
 `src/bearlib/`:
+- `bear.py` — the `Bear` facade, the public entry point: reads delegate to
+  `db`, writes to `ops`. Note's intrinsic helpers are methods (`has_tag`,
+  `to_dict`, `status_line`); cross-resource operations stay functional in
+  `ops`.
 - `db.py` — database layer. Opens SQLite in read-only URI mode, converts
   Core Data timestamps, detects the note/tag join table dynamically.
 - `actions.py` — write actions via Bear's x-callback-url scheme. No database

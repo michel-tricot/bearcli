@@ -24,7 +24,7 @@ from textual.widgets import Input, Label, LoadingIndicator, OptionList, Static, 
 from textual.widgets.option_list import Option
 
 from bearlib import actions, ops
-from bearlib.db import DEFAULT_DB_PATH, BearDB, Note, pretty_status
+from bearlib.db import DEFAULT_DB_PATH, BearDB, Note
 from bearlib.search import SearchResult, naive_search, search_notes
 from bearlib.secrets import redaction_map, scan_notes
 
@@ -567,7 +567,7 @@ class BearUI(App):
         return sorted({tag for note in self.notes for tag in note.tags})
 
     def _preview(self, note: Note) -> RenderableType:
-        status = pretty_status(note).replace(",", ", ")
+        status = note.status_line.replace(",", ", ")
         meta = Text()
         meta.append(note.title + "\n", "bold")
         meta.append(f"id       {note.id}\n", "dim")

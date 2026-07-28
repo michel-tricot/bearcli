@@ -37,10 +37,6 @@ class TagMarkerNotFound(LookupError):
     """The note text contains no inline marker for the tag being removed."""
 
 
-def has_tag(note: Note, name: str) -> bool:
-    return name.lower() in (t.lower() for t in note.tags)
-
-
 def _confirmed(db: BearDB, note_id: str, operation: str, changed: Callable[[Note], bool]) -> Note:
     def check() -> bool:
         fresh = db.get_note(note_id)
@@ -98,7 +94,7 @@ def rename(db: BearDB, note: Note, new_title: str) -> Note:
 
 def add_tag(db: BearDB, note: Note, name: str) -> Note:
     actions.add_text(note.id, tag_marker(name), mode=TextMode.APPEND.value)
-    return _confirmed(db, note.id, "tag", lambda n: has_tag(n, name))
+    return _confirmed(db, note.id, "tag", lambda n: n.has_tag(name))
 
 
 def remove_tag(db: BearDB, note: Note, name: str) -> Note:
@@ -110,7 +106,7 @@ def remove_tag(db: BearDB, note: Note, name: str) -> Note:
     if new_text is None:
         raise TagMarkerNotFound(f"no #{name} marker in the note text")
     actions.add_text(note.id, new_text, mode=TextMode.REPLACE_ALL.value)
-    return _confirmed(db, note.id, "untag", lambda n: not has_tag(n, name))
+    return _confirmed(db, note.id, "untag", lambda n: not n.has_tag(name))
 
 
 def attach_file(db: BearDB, note: Note, filename: str, file_b64: str) -> Note:
@@ -127,3 +123,28 @@ def trash(db: BearDB, note: Note) -> Note:
 def archive(db: BearDB, note: Note) -> Note:
     actions.archive_note(note.id)
     return _confirmed(db, note.id, "archive", lambda n: n.archived)
+
+
+def rename_tag(db: BearDB, name: str, new_name: str) -> None:
+    """Rename a tag across all notes; verified via the tag list."""
+    actions.rename_tag(name, new_name)
+    if not actions.wait_for(
+        lambda: new_name.lower() in {t.lower() for t, _ in db.list_tags(include_empty=True)},
+        timeout=VERIFY_TIMEOUT,
+    ):
+        raise BearWriteError(f"tag {name!r} was not renamed")
+
+
+def delete_tag(db: BearDB, name: str) -> None:
+    """Delete a tag from every note; verified by its note count reaching zero.
+
+    Bear keeps the empty tag row behind, so absence is not the signal.
+    """
+    actions.delete_tag(name)
+
+    def gone() -> bool:
+        counts = {t.lower(): c for t, c in db.list_tags(include_empty=True)}
+        return counts.get(name.lower(), 0) == 0
+
+    if not actions.wait_for(gone, timeout=VERIFY_TIMEOUT):
+        raise BearWriteError(f"tag {name!r} was not deleted")
