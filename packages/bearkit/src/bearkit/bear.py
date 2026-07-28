@@ -17,6 +17,7 @@ from bearkit import actions, ops
 from bearkit.db import DEFAULT_DB_PATH, BearDB, Note, NoteFilter
 from bearkit.ops import TextMode
 from bearkit.search import SearchResult, naive_search, search_notes
+from bearkit.secrets import ScanReport, scan_notes
 
 
 class Bear:
@@ -83,6 +84,10 @@ class Bear:
         if fuzzy:
             return search_notes(notes, query, min_score=min_score)
         return naive_search(notes, query)
+
+    def scan_secrets(self, notes: list[Note] | None = None) -> ScanReport:
+        """Scan for secrets; defaults to every note, archived included."""
+        return scan_notes(notes if notes is not None else self.list_notes(limit=None, include_archived=True))
 
     # ── verified writing ─────────────────────────────────────────────────
 

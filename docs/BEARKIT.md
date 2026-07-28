@@ -101,6 +101,22 @@ for result in bear.search("quarterly planing", fuzzy=True)[:5]:
     print(f"{result.score:5.1f}  {result.note.title}")
 ```
 
+#### `bear.scan_secrets(notes=None) -> ScanReport`
+
+Scan for leaked credentials. By default it scans every note, archived
+included - the set you want when auditing before sharing or exporting. Pass
+an explicit list to scan a subset. See the Secrets section for what the
+report can do.
+
+```python
+from bearkit import Bear
+
+bear = Bear()
+report = bear.scan_secrets()
+for f in report:
+    print(f.note_title, f.rule, f.line, f.excerpt)
+```
+
 ### Writing
 
 Verified writes raise `BearWriteError` if Bear doesn't observably apply the
@@ -273,15 +289,17 @@ for result in search_notes(notes, "quarterly planing")[:5]:
 ### `scan_notes(notes) -> ScanReport`
 
 Offline detection: known token formats, entropy analysis, and labeled
-credentials. The report iterates as `SecretFinding`s and is truthy when
-anything was found. `SecretFinding.excerpt` is safe to display;
-`SecretFinding.secret` holds the raw value for redaction - never print it.
+credentials. `bear.scan_secrets()` is the facade shortcut with the right
+default note set; `scan_notes` is the pure function for any list of notes.
+The report iterates as `SecretFinding`s and is truthy when anything was
+found. `SecretFinding.excerpt` is safe to display; `SecretFinding.secret`
+holds the raw value for redaction - never print it.
 
 ```python
 from bearkit import Bear, scan_notes
 
 bear = Bear()
-report = scan_notes(bear.list_notes(limit=None))
+report = scan_notes(bear.list_notes(tag="work", limit=None))
 print(f"{len(report)} finding(s) in {report.notes_affected()} note(s)")
 for f in report:
     print(f.note_title, f.rule, f.line, f.excerpt)
@@ -296,11 +314,11 @@ questions without touching raw values; `redact_text(text)` redacts arbitrary
 text (e.g. after rewriting links) using every finding in the report.
 
 ```python
-from bearkit import Bear, scan_notes
+from bearkit import Bear
 
 bear = Bear()
-notes = bear.list_notes(limit=None)
-report = scan_notes(notes)
+notes = bear.list_notes(limit=None, include_archived=True)
+report = bear.scan_secrets(notes)
 for n in notes:
     if report.has(n.id):
         safe = report.redact(n)  # n.text is untouched; share `safe` instead
@@ -313,11 +331,11 @@ This permanently overwrites the original values - after the replace they only
 exist wherever else you stored them.
 
 ```python
-from bearkit import Bear, TextMode, scan_notes
+from bearkit import Bear, TextMode
 
 with Bear() as bear:
-    notes = bear.list_notes(limit=None)
-    report = scan_notes(notes)
+    notes = bear.list_notes(limit=None, include_archived=True)
+    report = bear.scan_secrets(notes)
     for n in notes:
         if report.has(n.id):
             bear.add_text(n, report.redact(n), mode=TextMode.REPLACE_ALL)

@@ -47,6 +47,21 @@ def test_note_methods(populated):
     assert note.status_line == "pinned"
 
 
+def test_facade_scan_secrets_covers_archived(populated):
+    populated.add_note(
+        "SECA0000-0000-0000-0000-000000000001",
+        "Old keys",
+        text="# Old keys\nkey AKIAIOSFODNN7EXAMPLE\n",
+        archived=True,
+    )
+    populated.conn.commit()
+    bear = Bear(populated.path)
+    report = bear.scan_secrets()
+    assert report.has("SECA0000-0000-0000-0000-000000000001")
+    subset = bear.scan_secrets(bear.list_notes())  # active notes only
+    assert not subset
+
+
 def test_facade_search(populated):
     populated.conn.commit()
     bear = Bear(populated.path)
