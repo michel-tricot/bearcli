@@ -43,6 +43,13 @@ bearcli get C44D09DC-... -r
 # (GitHub renders each note when you open its folder)
 bearcli export ~/bear-backup
 bearcli export ~/bear-backup --sync          # only rewrite notes that changed
+
+# Write actions (via Bear's x-callback-url API — the database itself is never
+# written; these launch the Bear app if needed)
+bearcli create "Meeting notes" --text "agenda..." --tag work
+echo "follow-up item" | bearcli append C44D09DC-...
+bearcli archive C44D09DC-...
+bearcli trash C44D09DC-...
 ```
 
 Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`).

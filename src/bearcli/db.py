@@ -152,7 +152,9 @@ class BearDB:
             where.append("n.ZTRASHED = 0")
         if only == "archived":
             where.append("n.ZARCHIVED = 1")
-        elif not include_archived:
+        elif not include_archived and only != "trashed":
+            # A note trashed from the archive keeps both flags; Bear shows it in
+            # the trash, so --only trashed must not exclude archived notes.
             where.append("n.ZARCHIVED = 0")
         if tag:
             # Match the tag itself and its nested sub-tags (e.g. "work" matches "work/ideas").

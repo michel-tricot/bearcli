@@ -1,8 +1,10 @@
 # Agent instructions for bearcli
 
 CLI that reads notes from the Bear note app (macOS) by opening Bear's SQLite
-database directly. Read-only by design: this tool must never write to Bear's
-database or require the Bear app to be running.
+database directly. The database is strictly read-only; write actions (create,
+append, trash, archive) go exclusively through Bear's x-callback-url API in
+`src/bearcli/actions.py` — never through SQL. Reading never requires the Bear
+app to be running; write actions launch it via the URL scheme.
 
 ## Commands
 
@@ -23,8 +25,11 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 
 ## Layout
 
-- `src/bearcli/cli.py` — Typer app (commands: `list`, `get`, `export`). All
-  presentation (Rich tables, JSON/text formats, spinner) lives here.
+- `src/bearcli/cli.py` — Typer app (commands: `list`, `get`, `export`,
+  `create`, `append`, `trash`, `archive`). All presentation (Rich tables,
+  JSON/text formats, spinner) lives here.
+- `src/bearcli/actions.py` — write actions via Bear's x-callback-url scheme.
+  No database access; fire-and-forget `open -g bear://...` calls.
 - `src/bearcli/db.py` — database layer. Opens SQLite in read-only URI mode,
   converts Core Data timestamps, detects the note/tag join table dynamically.
   No CLI or output concerns.
@@ -36,6 +41,9 @@ See `docs/IMPLEMENTATION.md` for Bear's schema details and export design.
 ## Hard rules
 
 - Open the database with `mode=ro` (URI). Never take a writable connection.
+  All mutations go through `bear://x-callback-url/` (see `actions.py`); after
+  firing one, verify the outcome by re-reading the database (Bear applies URL
+  actions asynchronously and returns nothing).
 - Use parameterized SQL; never interpolate values into queries.
 - Do not hardcode the tag join table names (`Z_5TAGS`, `Z_13TAGS` etc.) — the
   numeric prefixes change between Bear versions; use the runtime detection in

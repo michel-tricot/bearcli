@@ -129,6 +129,25 @@ Decisions and their reasons:
   CLI renders it as a Rich status spinner (escaping titles so `[...]` isn't
   parsed as markup).
 
+## Write actions (`actions.py`)
+
+The database is never written — not because of caution alone, but because Bear
+tracks sync state (`ZSFCHANGE`, server-data tables) that direct SQL writes
+would desynchronize. Mutations go through Bear's `bear://x-callback-url/`
+scheme (`create`, `add-text`, `trash`, `archive`), fired with `open -g` so
+Bear stays in the background. The URL scheme launches Bear if it isn't
+running — this is the only part of bearcli that needs the app.
+
+URL actions are fire-and-forget (no result without an x-success callback
+server), so each CLI command verifies the outcome by polling the read-only
+database: `create` looks for a note with the given title created after the
+call, `append` for a bumped modification date, `trash`/`archive` for the flag.
+A missing verification within ~6s is reported as an error.
+
+Learned from testing: trashing an archived note keeps `ZARCHIVED = 1`
+alongside `ZTRASHED = 1`, and Bear shows such notes in the Trash — so the
+`--only trashed` filter must not apply the default archived-exclusion.
+
 ## Reference
 
 Prior art: [sandip-mane/bear-github-sync](https://github.com/sandip-mane/bear-github-sync)
