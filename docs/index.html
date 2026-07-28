@@ -71,7 +71,7 @@
   .term pre {
     padding: 20px 22px;
     overflow-x: auto;
-    font: 13.5px/1.75 var(--mono);
+    font: 13px/1.75 var(--mono);
   }
   .p  { color: var(--accent); }        /* prompt */
   .c  { color: var(--dim); }           /* comment / borders */
@@ -145,20 +145,20 @@
       <span class="term-title">bearcli</span>
     </div>
     <pre><span class="p">❯</span> bearcli list -n 3
-<span class="c">╭──────────────────────────────────────┬────────────────────┬──────────┬────────┬──────────────────╮</span>
-<span class="c">│</span> <b>ID</b>                                   <span class="c">│</span> <b>Title</b>              <span class="c">│</span> <b>Tags</b>     <span class="c">│</span> <b>Status</b> <span class="c">│</span> <b>Modified</b>         <span class="c">│</span>
-<span class="c">├──────────────────────────────────────┼────────────────────┼──────────┼────────┼──────────────────┤</span>
-<span class="c">│</span> <span class="m">C44D09DC-7F0E-43BB-BEB8-67E3A389A448</span> <span class="c">│</span> bearcli fieldnotes <span class="c">│</span> <span class="cy">notes</span>    <span class="c">│</span>        <span class="c">│</span> 2026-07-27 20:54 <span class="c">│</span>
-<span class="c">│</span> <span class="m">7766167B-A410-48A9-8F1A-FB66F2BD8FE4</span> <span class="c">│</span> TODO               <span class="c">│</span> <span class="cy">work</span>     <span class="c">│</span> <span class="y">pinned</span> <span class="c">│</span> 2026-03-03 09:53 <span class="c">│</span>
-<span class="c">│</span> <span class="m">4DE9B0D9-62FD-4462-A3DA-3D2AFF7AA1B4</span> <span class="c">│</span> Smarthome          <span class="c">│</span> <span class="cy">home</span>     <span class="c">│</span>        <span class="c">│</span> 2026-07-26 13:57 <span class="c">│</span>
-<span class="c">╰──────────────────────────────────────┴────────────────────┴──────────┴────────┴──────────────────╯</span>
+<span class="c">╭──────────────────────────────────────┬────────────────────┬───────┬────────┬────────────╮</span>
+<span class="c">│</span> <b>ID</b>                                   <span class="c">│</span> <b>Title</b>              <span class="c">│</span> <b>Tags</b>  <span class="c">│</span> <b>Status</b> <span class="c">│</span> <b>Modified</b>   <span class="c">│</span>
+<span class="c">├──────────────────────────────────────┼────────────────────┼───────┼────────┼────────────┤</span>
+<span class="c">│</span> <span class="m">C44D09DC-7F0E-43BB-BEB8-67E3A389A448</span> <span class="c">│</span> bearcli fieldnotes <span class="c">│</span> <span class="cy">notes</span> <span class="c">│</span>        <span class="c">│</span> 2026-07-27 <span class="c">│</span>
+<span class="c">│</span> <span class="m">7766167B-A410-48A9-8F1A-FB66F2BD8FE4</span> <span class="c">│</span> TODO               <span class="c">│</span> <span class="cy">work</span>  <span class="c">│</span> <span class="y">pinned</span> <span class="c">│</span> 2026-03-03 <span class="c">│</span>
+<span class="c">│</span> <span class="m">4DE9B0D9-62FD-4462-A3DA-3D2AFF7AA1B4</span> <span class="c">│</span> Smarthome          <span class="c">│</span> <span class="cy">home</span>  <span class="c">│</span>        <span class="c">│</span> 2026-07-26 <span class="c">│</span>
+<span class="c">╰──────────────────────────────────────┴────────────────────┴───────┴────────┴────────────╯</span>
 
 <span class="p">❯</span> bearcli search <span class="g">"quarterly planing"</span> --fuzzy -n 1
-<span class="c">╭───────┬──────────────────────────────────────┬────────────────────┬───────────────────────────╮</span>
-<span class="c">│</span> <b>Score</b> <span class="c">│</span> <b>ID</b>                                   <span class="c">│</span> <b>Title</b>              <span class="c">│</span> <b>Match</b>                     <span class="c">│</span>
-<span class="c">├───────┼──────────────────────────────────────┼────────────────────┼───────────────────────────┤</span>
-<span class="c">│</span>    91 <span class="c">│</span> <span class="m">2F148B6A-082E-4C3D-82A7-1D60A64BC3FD</span> <span class="c">│</span> Planning           <span class="c">│</span> <span class="g">…quarterly planning doc…</span>  <span class="c">│</span>
-<span class="c">╰───────┴──────────────────────────────────────┴────────────────────┴───────────────────────────╯</span>
+<span class="c">╭───────┬──────────────────────────────────────┬──────────┬──────────────────────────╮</span>
+<span class="c">│</span> <b>Score</b> <span class="c">│</span> <b>ID</b>                                   <span class="c">│</span> <b>Title</b>    <span class="c">│</span> <b>Match</b>                    <span class="c">│</span>
+<span class="c">├───────┼──────────────────────────────────────┼──────────┼──────────────────────────┤</span>
+<span class="c">│</span>    91 <span class="c">│</span> <span class="m">2F148B6A-082E-4C3D-82A7-1D60A64BC3FD</span> <span class="c">│</span> Planning <span class="c">│</span> <span class="g">…quarterly planning doc…</span> <span class="c">│</span>
+<span class="c">╰───────┴──────────────────────────────────────┴──────────┴──────────────────────────╯</span>
 
 <span class="p">❯</span> bearcli export ~/bear-backup --sync
 Exported to <span class="cy">~/bear-backup</span>: <span class="g">3 written</span>, 1919 unchanged, index updated</pre>
