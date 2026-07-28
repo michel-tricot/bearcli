@@ -346,7 +346,7 @@ def create(
     tags: Annotated[list[str] | None, typer.Option("--tag", "-t", help="Tag to add (repeatable).")] = None,
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
-    """Create a new note in Bear (via Bear's x-callback-url API)."""
+    """Create a new note in Bear."""
     db = _open_db(db_path)
     try:
         started = datetime.now(UTC)
