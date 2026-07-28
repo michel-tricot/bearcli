@@ -6,12 +6,10 @@ by re-reading the database, mirroring the CLI's write commands.
 
 from __future__ import annotations
 
-import re
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from rich.text import Text
-from textual import work
+from textual import events, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -21,7 +19,9 @@ from textual.widgets.option_list import Option
 
 from bearcli import actions
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
+from bearcli.markdown import remove_tag_marker, tag_marker
 from bearcli.search import SearchResult, naive_search, search_notes
+from bearcli.write import create_and_find
 
 HIGHLIGHT = "black on #dcb96a"
 
@@ -75,7 +75,7 @@ class TagScreen(ModalScreen[str | None]):
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self.dismiss(event.value.strip() or None)
 
-    def on_key(self, event) -> None:
+    def on_key(self, event: events.Key) -> None:
         if event.key == "down" and self.query_one("#tag-name", Input).has_focus:
             suggestions = self.query_one("#suggestions", OptionList)
             if suggestions.option_count:
@@ -89,7 +89,7 @@ class TagScreen(ModalScreen[str | None]):
         self.dismiss(None)
 
 
-class BrowseApp(App):
+class BearUI(App):
     """Browse, edit, and organize Bear notes from the terminal."""
 
     TITLE = "bearcli"
@@ -352,27 +352,13 @@ class BrowseApp(App):
     def _create_note(self, text: str) -> None:
         head, _, body = text.partition("\n")
         title = head.lstrip("# ").strip() or "Untitled"
-        started = datetime.now(UTC)
-        actions.create_note(title, text=body.strip() or None)
         db = BearDB(self.db_path)
         try:
-
-            def find() -> Note | None:
-                return next(
-                    (
-                        n
-                        for n in db.list_notes(limit=10)
-                        if n.title == title and n.created and n.created >= started - timedelta(seconds=5)
-                    ),
-                    None,
-                )
-
-            if actions.wait_for(lambda: find() is not None) and (created := find()) is not None:
-                fresh = db.get_note(created.id)
-                if fresh:
-                    self.notes.insert(0, fresh)
-                    self.call_from_thread(self._run_filter, self.search_query)
-                    self.call_from_thread(self.notify, f"Created {fresh.title!r}")
+            created = create_and_find(db, title, body.strip() or None)
+            if created is not None:
+                self.notes.insert(0, created)
+                self.call_from_thread(self._run_filter, self.search_query)
+                self.call_from_thread(self.notify, f"Created {created.title!r}")
             else:
                 self.call_from_thread(self.notify, "Create failed - is Bear able to run?", severity="error")
         finally:
@@ -381,17 +367,14 @@ class BrowseApp(App):
     @work(thread=True)
     def _tag_note(self, note: Note, tag: str, add: bool) -> None:
         if add:
-            marker = f"#{tag}#" if any(not (c.isalnum() or c in "/-_") for c in tag) else f"#{tag}"
-            actions.add_text(note.id, marker, mode="append")
+            actions.add_text(note.id, tag_marker(tag), mode="append")
             self._finish_write(note.id, lambda db: self._has_tag(db, note.id, tag), f"Tagged with {tag!r}", "Tag")
         else:
-            if note.text is None or tag.lower() not in (t.lower() for t in note.tags):
+            new_text = remove_tag_marker(note.text or "", tag)
+            if new_text is None:
                 self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
                 return
-            escaped = re.escape(tag)
-            new_text = re.sub(rf"[ \t]?#{escaped}#", "", note.text, flags=re.IGNORECASE)
-            new_text = re.sub(rf"[ \t]?#{escaped}(?![\w/-])", "", new_text, flags=re.IGNORECASE)
-            actions.add_text(note.id, new_text.rstrip("\n") + "\n", mode="replace_all")
+            actions.add_text(note.id, new_text, mode="replace_all")
             self._finish_write(note.id, lambda db: not self._has_tag(db, note.id, tag), f"Removed tag {tag!r}", "Untag")
 
     def _file_away(self, operation: str) -> None:
@@ -451,5 +434,5 @@ class BrowseApp(App):
             self.call_from_thread(self.notify, f"{operation} failed - is Bear able to run?", severity="error")
 
 
-def browse(notes: list[Note], fuzzy: bool = False, db_path: Path = DEFAULT_DB_PATH) -> None:
-    BrowseApp(notes, fuzzy=fuzzy, db_path=db_path).run()
+def run_ui(notes: list[Note], fuzzy: bool = False, db_path: Path = DEFAULT_DB_PATH) -> None:
+    BearUI(notes, fuzzy=fuzzy, db_path=db_path).run()

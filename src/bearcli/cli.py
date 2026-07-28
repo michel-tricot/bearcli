@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import base64
 import json
-import re
 import sys
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
@@ -22,9 +21,10 @@ from bearcli import actions
 from bearcli.db import DEFAULT_DB_PATH, AmbiguousNoteId, BearDB, Note, note_metadata
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
-from bearcli.markdown import rewrite_attachment_refs
+from bearcli.markdown import remove_tag_marker, rewrite_attachment_refs, tag_marker
 from bearcli.search import naive_search, search_notes
 from bearcli.secrets import SecretFinding, redact_text, redaction_map, scan_notes
+from bearcli.write import create_and_find
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
 note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=True)
@@ -400,22 +400,11 @@ def _verify(ok: Callable[[], bool], success: str, failure: str) -> None:
 
 
 def _create_and_report(db: BearDB, title: str, text: str | None, tags: list[str] | None) -> None:
-    started = datetime.now(UTC)
-    actions.create_note(title, text=text, tags=tags)
-
-    def find_created() -> Note | None:
-        candidates = db.list_notes(limit=10)
-        return next(
-            (n for n in candidates if n.title == title and n.created and n.created >= started - timedelta(seconds=5)),
-            None,
-        )
-
-    if actions.wait_for(lambda: find_created() is not None):
-        created = find_created()
-        console.print(f"Created note {created.id}" if created else "Created note")
-    else:
+    created = create_and_find(db, title, text, tags)
+    if created is None:
         console.print("[red]Error:[/red] note did not appear in the Bear database; is Bear able to run?")
         raise typer.Exit(1)
+    console.print(f"Created note {created.id}")
 
 
 @note_app.command()
@@ -540,11 +529,6 @@ def tags(
     console.print(table)
 
 
-def _tag_marker(name: str) -> str:
-    # Tags containing anything beyond word chars, '/', or '-' need the #...# form.
-    return f"#{name}#" if re.search(r"[^\w/-]", name) else f"#{name}"
-
-
 def _has_tag(note: Note, name: str) -> bool:
     return name.lower() in (t.lower() for t in note.tags)
 
@@ -562,7 +546,7 @@ def tag(
         if _has_tag(note, name):
             console.print(f"Note {note.id} already has tag {name!r}")
             return
-        actions.add_text(note.id, _tag_marker(name), mode="append")
+        actions.add_text(note.id, tag_marker(name), mode="append")
         _verify(
             lambda: (n := db.get_note(note.id)) is not None and _has_tag(n, name),
             f"Tagged note {note.id} with {name!r}",
@@ -587,15 +571,10 @@ def untag(
                 f"[red]Error:[/red] note {note.id} has no tag {name!r} (tags: {', '.join(note.tags) or 'none'})"
             )
             raise typer.Exit(1)
-        # Strip both marker forms; don't touch longer tags sharing the prefix
-        # (removing "work" must leave "#work/ideas" and "#workout" alone).
-        escaped = re.escape(name)
-        new_text = re.sub(rf"[ \t]?#{escaped}#", "", note.text, flags=re.IGNORECASE)
-        new_text = re.sub(rf"[ \t]?#{escaped}(?![\w/-])", "", new_text, flags=re.IGNORECASE)
-        if new_text == note.text:
+        new_text = remove_tag_marker(note.text, name)
+        if new_text is None:
             console.print(f"[red]Error:[/red] could not locate the #{name} marker in the note text")
             raise typer.Exit(1)
-        new_text = new_text.rstrip("\n") + "\n"
         actions.add_text(note.id, new_text, mode="replace_all")
         _verify(
             lambda: (n := db.get_note(note.id)) is not None and not _has_tag(n, name),
@@ -923,11 +902,11 @@ def ui(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Bear in the terminal: search, edit, create, tag, and organize notes."""
-    from bearcli.tui import browse as run_browser
+    from bearcli.tui import run_ui
 
     db = _open_db(db_path)
     try:
         notes = db.list_notes(limit=None, tag=tag_filter, with_text=True)
     finally:
         db.close()
-    run_browser(notes, fuzzy=fuzzy, db_path=db_path)
+    run_ui(notes, fuzzy=fuzzy, db_path=db_path)
