@@ -22,7 +22,7 @@ from rich.table import Table
 from bearcli import actions
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
 from bearcli.export import export_notes
-from bearcli.search import search_notes
+from bearcli.search import naive_search, search_notes
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True)
 console = Console()
@@ -131,7 +131,6 @@ def list_notes(
     modified_before: Annotated[str | None, typer.Option("--modified-before", help="Modified before this date.")] = None,
     created_after: Annotated[str | None, typer.Option("--created-after", help="Created on or after this date.")] = None,
     created_before: Annotated[str | None, typer.Option("--created-before", help="Created before this date.")] = None,
-    search: Annotated[str | None, typer.Option("--search", "-s", help="Filter by text in title or body.")] = None,
     only: Annotated[
         OnlyFilter | None,
         typer.Option(
@@ -163,7 +162,6 @@ def list_notes(
             created_before=_parse_date(created_before, "--created-before"),
             modified_after=_parse_date(modified_after, "--modified-after"),
             modified_before=_parse_date(modified_before, "--modified-before"),
-            search=search,
             only=only.value if only else None,
             include_trashed=trashed,
             include_archived=archived,
@@ -706,19 +704,20 @@ def delete_tag(
 
 @app.command()
 def search(
-    query: Annotated[str, typer.Argument(help="Search terms (typo-tolerant, matched against titles, tags, and text).")],
+    query: Annotated[str, typer.Argument(help="Search terms, matched against titles, tags, and text.")],
+    fuzzy: Annotated[bool, typer.Option("--fuzzy", help="Typo-tolerant matching, ranked by score.")] = False,
     limit: Annotated[int, typer.Option("--limit", "-n", help="Maximum number of results.")] = 10,
-    min_score: Annotated[float, typer.Option("--min-score", help="Minimum match score (0-100).")] = 60.0,
+    min_score: Annotated[float, typer.Option("--min-score", help="Minimum match score, 0-100 (fuzzy only).")] = 60.0,
     tag_filter: Annotated[str | None, typer.Option("--tag", "-t", help="Restrict to notes with this tag.")] = None,
     trashed: Annotated[bool, typer.Option("--trashed", help="Include trashed notes.")] = False,
     archived: Annotated[bool, typer.Option("--archived", help="Include archived notes.")] = False,
     fmt: Annotated[
         OutputFormat,
-        typer.Option("--format", "-f", help="Output format: table, json, or text (tab-separated: id, score, title)."),
+        typer.Option("--format", "-f", help="Output format: table, json, or text."),
     ] = OutputFormat.table,
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
-    """Fuzzy-search notes by title, tags, and content, ranked by match quality."""
+    """Search notes by title, tags, and content (case-insensitive; --fuzzy for typo tolerance)."""
     db = _open_db(db_path)
     try:
         notes = db.list_notes(
@@ -731,15 +730,23 @@ def search(
     finally:
         db.close()
 
-    results = search_notes(notes, query, min_score=min_score)[:limit]
+    if fuzzy:
+        results = search_notes(notes, query, min_score=min_score)[:limit]
+    else:
+        results = naive_search(notes, query)[:limit]
 
     if fmt is OutputFormat.json:
-        payload = [{**_note_to_dict(r.note), "score": round(r.score, 1), "snippet": r.snippet} for r in results]
+        payload = [
+            {**_note_to_dict(r.note), "snippet": r.snippet}
+            | ({"score": round(r.score, 1)} if r.score is not None else {})
+            for r in results
+        ]
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return
     if fmt is OutputFormat.text:
         for r in results:
-            print(f"{r.note.id}\t{r.score:.0f}\t{r.note.title}")
+            score = f"\t{r.score:.0f}" if r.score is not None else ""
+            print(f"{r.note.id}{score}\t{r.note.title}")
         return
 
     if not results:
@@ -747,10 +754,18 @@ def search(
         return
 
     table = Table(box=box.ROUNDED, header_style="bold")
-    table.add_column("Score", justify="right")
+    if fuzzy:
+        table.add_column("Score", justify="right")
     table.add_column("ID", style="dim", no_wrap=True)
     table.add_column("Title", overflow="ellipsis", max_width=40)
     table.add_column("Match", style="green", overflow="ellipsis", max_width=50)
+    if not fuzzy:
+        table.add_column("Modified", no_wrap=True)
     for r in results:
-        table.add_row(f"{r.score:.0f}", r.note.id, r.note.title, r.snippet)
+        row = [r.note.id, r.note.title, r.snippet]
+        if fuzzy:
+            row.insert(0, f"{r.score:.0f}" if r.score is not None else "")
+        else:
+            row.append(r.note.modified.strftime("%Y-%m-%d %H:%M") if r.note.modified else "")
+        table.add_row(*row)
     console.print(table)

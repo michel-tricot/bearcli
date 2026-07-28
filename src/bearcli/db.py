@@ -153,7 +153,6 @@ class BearDB:
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
-        search: str | None = None,
         only: str | None = None,
         include_trashed: bool = False,
         include_archived: bool = False,
@@ -202,9 +201,6 @@ class BearDB:
         if modified_before:
             where.append("n.ZMODIFICATIONDATE < ?")
             params.append(datetime_to_core_data(modified_before))
-        if search:
-            where.append("(n.ZTITLE LIKE ? OR n.ZTEXT LIKE ?)")
-            params += [f"%{search}%", f"%{search}%"]
 
         text_col = ", n.ZTEXT" if with_text else ""
         query = f"""

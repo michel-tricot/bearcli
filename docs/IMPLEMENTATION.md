@@ -131,6 +131,9 @@ Decisions and their reasons:
 
 ## Fuzzy search (`search.py`)
 
+Default mode is a case-insensitive substring match over titles, tags, and
+text, newest first. `--fuzzy` switches to rapidfuzz scoring:
+
 rapidfuzz-based, scored per note as the max of title, tag, and body matches
 (weighted 1.0 / 0.95 / 0.9). The one rule that matters: **the query must
 always be the needle**. `partial_ratio` slides the shorter string over the

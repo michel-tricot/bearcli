@@ -21,8 +21,29 @@ SNIPPET_LENGTH = 70
 @dataclass
 class SearchResult:
     note: Note
-    score: float
     snippet: str
+    score: float | None = None  # None for naive (substring) matches
+
+
+def naive_search(notes: list[Note], query: str) -> list[SearchResult]:
+    """Case-insensitive substring search over titles, tags, and text.
+
+    Input order (most recently modified first) is preserved.
+    """
+    needle = query.lower()
+    results = []
+    for note in notes:
+        title_hit = needle in note.title.lower()
+        tag_hit = any(needle in tag.lower() for tag in note.tags)
+        body_line = next(
+            (line.strip() for line in (note.text or "").splitlines() if needle in line.lower()),
+            "",
+        )
+        if not (title_hit or tag_hit or body_line):
+            continue
+        snippet = _trim_snippet(body_line, query) if body_line and not (title_hit or tag_hit) else ""
+        results.append(SearchResult(note=note, snippet=snippet))
+    return results
 
 
 def _fuzzy_score(processed_query: str, target: str) -> float:
@@ -96,5 +117,5 @@ def search_notes(notes: list[Note], query: str, min_score: float = 60.0) -> list
         snippet = _trim_snippet(body_line, query) if body_score >= max(title_score, tag_score) else ""
         results.append(SearchResult(note=note, score=score, snippet=snippet))
 
-    results.sort(key=lambda r: r.score, reverse=True)
+    results.sort(key=lambda r: r.score or 0.0, reverse=True)
     return results
