@@ -168,8 +168,8 @@
 <span class="c">│</span>    91 <span class="c">│</span> <span class="m">2F148B6A-082E-4C3D-82A7-1D60A64BC3FD</span> <span class="c">│</span> Planning <span class="c">│</span> <span class="g">…quarterly planning doc…</span> <span class="c">│</span>
 <span class="c">╰───────┴──────────────────────────────────────┴──────────┴──────────────────────────╯</span>
 
-<span class="p">❯</span> bearcli export ~/bear-backup --sync
-Exported to <span class="cy">~/bear-backup</span>: <span class="g">3 written</span>, 1919 unchanged, index updated</pre>
+<span class="p">❯</span> bearcli export ~/bear-notes --sync --redact-secrets --push
+Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</span>, 1919 unchanged, <span class="y">2 secrets redacted</span>, pushed</pre>
   </div>
 
   <section>
@@ -193,6 +193,14 @@ Exported to <span class="cy">~/bear-backup</span>: <span class="g">3 written</sp
         <p><code>--sync</code> rewrites only what changed and cleans up deleted notes, never touching files it doesn't own.</p>
       </div>
       <div class="card">
+        <h3>Secret protection</h3>
+        <p>Exports are scanned for credentials first — block, or <code>--redact-secrets</code> to replace them with placeholders. Fully offline.</p>
+      </div>
+      <div class="card">
+        <h3>Git mirroring</h3>
+        <p><code>--push</code> keeps a private repo in sync: commit, merge, push — converges on its own and never loses an edit to history.</p>
+      </div>
+      <div class="card">
         <h3>Scriptable</h3>
         <p>Every listing has <code>json</code> and tab-separated <code>text</code> output, built for <code>jq</code>, <code>cut</code>, and pipes.</p>
       </div>
@@ -212,7 +220,7 @@ Exported to <span class="cy">~/bear-backup</span>: <span class="g">3 written</sp
       <tr><td><code>bearcli note tag / untag</code></td><td class="desc">Add or remove a tag on one note</td></tr>
       <tr><td><code>bearcli note trash / archive / open</code></td><td class="desc">File a note away, or open it in Bear</td></tr>
       <tr><td><code>bearcli tag list / rename / delete</code></td><td class="desc">Manage tags across all notes</td></tr>
-      <tr><td><code>bearcli export</code></td><td class="desc">Export everything as browsable markdown folders</td></tr>
+      <tr><td><code>bearcli export</code></td><td class="desc">Export everything as browsable markdown folders — secret-scanned, and <code style="color:var(--cyan)">--push</code> mirrors to a git repo</td></tr>
     </table>
   </section>
 
