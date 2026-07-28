@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐻</text></svg>">
-<title>bearcli — the missing CLI for Bear notes</title>
-<meta name="description" content="The missing CLI for Bear notes — read, search, export, and manage your notes from the terminal. Read-only database access, fuzzy search, self-contained markdown exports.">
+<title>bearcli - the missing CLI for Bear notes</title>
+<meta name="description" content="The missing CLI for Bear notes - read, search, export, and manage your notes from the terminal. Read-only database access, fuzzy search, self-contained markdown exports.">
 <style>
   :root {
     --bg: #14100e;
@@ -146,7 +146,7 @@
   <header>
     <div class="bear">🐻</div>
     <h1><span class="accent">bear</span>cli</h1>
-    <p class="tagline">The missing CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes — read, search, export, and manage your notes from the terminal.</p>
+    <p class="tagline">The missing CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes - read, search, export, and manage your notes from the terminal.</p>
     <div class="badges">
       <a href="https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml"><img src="https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
       <a href="https://github.com/michel-tricot/bearcli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
@@ -190,15 +190,15 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
   </section>
 
   <section>
-    <h2>Why bearcli</h2>
+    <h2>Why <code>bearcli</code></h2>
     <div class="grid">
       <div class="card">
         <h3>Fuzzy search</h3>
-        <p>Typo-tolerant, ranked search across titles, tags, and note text — or plain case-insensitive matching by default.</p>
+        <p>Typo-tolerant, ranked search across titles, tags, and note text - or plain case-insensitive matching by default.</p>
       </div>
       <div class="card">
         <h3>Self-contained exports</h3>
-        <p>Each note becomes a portable folder — <code>README.md</code> + attachments — plus a generated index. GitHub renders the whole tree.</p>
+        <p>Each note becomes a portable folder - <code>README.md</code> + attachments - plus a generated index. GitHub renders the whole tree.</p>
       </div>
       <div class="card">
         <h3>Incremental sync</h3>
@@ -206,11 +206,11 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
       </div>
       <div class="card">
         <h3>Secret protection</h3>
-        <p>Exports are scanned for credentials first — block, or <code>--redact-secrets</code> to replace them with placeholders. Fully offline.</p>
+        <p>Exports are scanned for credentials first - block, or <code>--redact-secrets</code> to replace them with placeholders. Fully offline.</p>
       </div>
       <div class="card">
         <h3>Git mirroring</h3>
-        <p><code>--push</code> keeps a private repo in sync: commit, merge, push — converges on its own and never loses an edit to history.</p>
+        <p><code>--push</code> keeps a private repo in sync: commit, merge, push - converges on its own and never loses an edit to history.</p>
       </div>
       <div class="card">
         <h3>Scriptable</h3>
@@ -221,7 +221,7 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
       <strong>⚠️ A note on secrets.</strong>
       Detection and redaction are best-effort: they catch known token formats,
       credential assignments, and high-entropy strings, but a secret that reads
-      like ordinary text — a password written as prose, an account number —
+      like ordinary text - a password written as prose, an account number -
       will not be caught. Ideally, don't keep secrets in notes at all: use a
       password manager, or Bear's encrypted notes, which never leave the app.
     </aside>
@@ -230,8 +230,8 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
   <section>
     <h2>✨ For AI agents</h2>
     <p style="color:var(--muted); font-size:15px; margin-bottom:14px;">
-      bearcli ships an <a href="https://github.com/michel-tricot/bearcli/tree/main/skills/bear-notes" style="color:var(--accent-soft)">Agent Skill</a>
-      that teaches Claude Code (and other skill-aware agents) how to drive the CLI —
+      <code>bearcli</code> ships an <a href="https://github.com/michel-tricot/bearcli/tree/main/skills/bear-notes" style="color:var(--accent-soft)">Agent Skill</a>
+      that teaches Claude Code (and other skill-aware agents) how to drive the CLI -
       machine-readable output, id prefixes, write verification, and the redact-before-sharing
       rules. Your agent can answer <em>“what did I write about X?”</em> straight from your notes.
     </p>
@@ -243,7 +243,7 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
     <table>
       <tr><th>Command</th><th>What it does</th></tr>
       <tr><td><code>bearcli note list</code></td><td class="desc">List notes with tag, date, and status filters</td></tr>
-      <tr><td><code>bearcli note search</code></td><td class="desc">Search titles, tags, and content — <code style="color:var(--cyan)">--fuzzy</code> for typo tolerance</td></tr>
+      <tr><td><code>bearcli note search</code></td><td class="desc">Search titles, tags, and content - <code style="color:var(--cyan)">--fuzzy</code> for typo tolerance</td></tr>
       <tr><td><code>bearcli note get</code></td><td class="desc">Print a note's markdown, metadata, and attachment paths</td></tr>
       <tr><td><code>bearcli note create</code></td><td class="desc">Create a note from arguments or stdin</td></tr>
       <tr><td><code>bearcli note append / replace / rename</code></td><td class="desc">Edit an existing note</td></tr>
@@ -251,7 +251,7 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
       <tr><td><code>bearcli note tag / untag</code></td><td class="desc">Add or remove a tag on one note</td></tr>
       <tr><td><code>bearcli note trash / archive / open</code></td><td class="desc">File a note away, or open it in Bear</td></tr>
       <tr><td><code>bearcli tag list / rename / delete</code></td><td class="desc">Manage tags across all notes</td></tr>
-      <tr><td><code>bearcli export</code></td><td class="desc">Export everything as browsable markdown folders — secret-scanned, and <code style="color:var(--cyan)">--push</code> mirrors to a git repo</td></tr>
+      <tr><td><code>bearcli export</code></td><td class="desc">Export everything as browsable markdown folders - secret-scanned, and <code style="color:var(--cyan)">--push</code> mirrors to a git repo</td></tr>
     </table>
   </section>
 

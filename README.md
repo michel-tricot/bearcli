@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🐻 bearcli
+# 🐻 `bearcli`
 
-**The missing CLI for [Bear](https://bear.app) notes** — read, search, export, and
+**The missing CLI for [Bear](https://bear.app) notes** - read, search, export, and
 manage your notes from the terminal.
 
 [![CI](https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml/badge.svg)](https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml)
@@ -67,7 +67,7 @@ bearcli search "quarterly planing" --fuzzy   # typo-tolerant, ranked by score
 
 ### Write
 
-Writes go through Bear's x-callback-url API — the database itself is never
+Writes go through Bear's x-callback-url API - the database itself is never
 written. These launch the Bear app if needed.
 
 ```sh
@@ -92,19 +92,19 @@ bearcli tag delete old-name                  # across all notes (asks first)
 
 ### Export
 
-Every note becomes a self-contained directory — `<slug>/README.md` plus its
-attachments — with a generated index, so GitHub renders the whole export as a
+Every note becomes a self-contained directory - `<slug>/README.md` plus its
+attachments - with a generated index, so GitHub renders the whole export as a
 browsable tree.
 
 Before anything is written, the notes are scanned for potential secrets
 (token formats, key blocks, credential assignments, high-entropy strings);
 findings block the export with a list of the affected notes. Override with
 `--allow-secrets` (export as-is) or `--redact-secrets` (replace each secret
-with a `[redacted: <rule>]` placeholder — notes in Bear are untouched).
+with a `[redacted: <rule>]` placeholder - notes in Bear are untouched).
 
-> **⚠️ Warning** — detection and redaction are best-effort: a secret that
+> **⚠️ Warning** - detection and redaction are best-effort: a secret that
 > reads like ordinary text (a password written as prose, an account number)
-> will not be caught. Ideally, don't keep secrets in notes at all — use a
+> will not be caught. Ideally, don't keep secrets in notes at all - use a
 > password manager, or at least Bear's encrypted notes, which never leave
 > the app.
 
@@ -113,7 +113,7 @@ bearcli export ~/bear-backup
 bearcli export ~/bear-backup --sync          # only rewrite notes that changed
 bearcli export ~/bear-backup --redact-secrets  # secrets become [redacted: <rule>]
 
-# Mirror to a git repository (clone it first; use a *private* repo — these are
+# Mirror to a git repository (clone it first; use a *private* repo - these are
 # your notes). Bear is the source of truth: remote or manual edits are kept in
 # git history but overwritten in HEAD. Never force-pushes, never gets stuck.
 git clone git@github.com:you/bear-notes.git ~/bear-notes
@@ -138,7 +138,7 @@ content cannot be read.
 ## Agent skill
 
 An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
-teaching AI agents (Claude Code, etc.) how to use bearcli ships in
+teaching AI agents (Claude Code, etc.) how to use `bearcli` ships in
 [`skills/bear-notes`](skills/bear-notes/SKILL.md):
 
 ```sh
