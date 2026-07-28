@@ -20,13 +20,13 @@ jobs:
         run: uv sync --dev
 
       - name: Ruff format
-        run: uv run ruff format --check src/
+        run: uv run ruff format --check src packages tests scripts
 
       - name: Ruff lint
-        run: uv run ruff check src/
+        run: uv run ruff check src packages tests scripts
 
       - name: Type check (ty)
-        run: uv run ty check src/
+        run: uv run ty check src packages
 
       - name: Tests
         run: uv run pytest tests/ -q

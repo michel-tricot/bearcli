@@ -1,0 +1,31 @@
+[project]
+name = "bearkit"
+version = "1.5.0"
+description = "Python toolkit for the Bear notes app — read, search, secret detection, and verified writes"
+readme = "README.md"
+keywords = ["bear", "notes", "markdown", "macos"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+]
+authors = [
+    { name = "Michel Tricot", email = "michel.tricot@gmail.com" }
+]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+dependencies = [
+    "detect-secrets>=1.5.0",
+    "rapidfuzz>=3.14.5",
+]
+
+[project.urls]
+Homepage = "https://michel-tricot.github.io/bearcli/"
+Repository = "https://github.com/michel-tricot/bearcli"
+Documentation = "https://github.com/michel-tricot/bearcli/blob/main/docs/BEARKIT.md"
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"

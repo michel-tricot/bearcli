@@ -1,9 +1,9 @@
 # `bearkit` API reference
 
 The fundamentals for interacting with the Bear notes app from Python. macOS
-only; everything runs offline. Install: `pip install bearcli` (both packages
-ship together). The package is typed (`py.typed`). Every sample below is
-self-contained.
+only; everything runs offline. Install: `pip install bearkit` (just the
+library - two dependencies, no CLI or TUI). The package is typed
+(`py.typed`). Every sample below is self-contained.
 
 `Bear` is the interface: one object for reading and verified writing. The
 raw layers stay available underneath (`bear.db`, `bearkit.ops`,

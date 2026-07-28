@@ -71,9 +71,11 @@ touched.
 ## Package split: bearkit and bearcli
 
 `bearkit` holds the fundamentals (db, actions, ops, markdown, search,
-secrets) with no UI dependencies; `bearcli` is the CLI/TUI product on top.
-Both ship from the same distribution (`tool.uv.build-backend.module-name`
-lists both). Dependency rule: bearkit never imports from bearcli.
+secrets) with only rapidfuzz + detect-secrets as dependencies; `bearcli` is
+the CLI/TUI product on top (typer, textual). They are separate PyPI
+distributions built from one uv workspace (`packages/bearkit` + the root),
+released in lockstep: same version, bearcli pins `bearkit==<version>`, one
+tag publishes both. Dependency rule: bearkit never imports from bearcli.
 
 bearkit API conventions: the `Bear` facade is the public interface (reads
 via `BearDB`, verified writes via `ops`); intrinsic pure helpers are `Note`

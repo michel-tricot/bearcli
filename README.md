@@ -161,9 +161,9 @@ cp -r skills/bear-notes ~/.claude/skills/   # or a project's .claude/skills/
 
 ## Use as a library
 
-The fundamentals ship as a separate importable package, `bearkit` - reading
+The fundamentals ship as their own package on PyPI, `bearkit` - reading
 Bear's database, verified writes through Bear's API, search, and secret
-detection - with no CLI or TUI dependencies:
+detection - with no CLI or TUI dependencies (`pip install bearkit`):
 
 ```python
 from bearkit import Bear, BearWriteError

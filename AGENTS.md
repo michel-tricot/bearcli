@@ -13,9 +13,9 @@ uv sync                  # install dependencies
 uv run bearcli --help    # run the CLI
 uv run bearcli list -n 5 # quick smoke test (needs Bear installed locally)
 
-uv run ruff format src/  # format (line length 120)
-uv run ruff check src/   # lint — must pass before committing
-uv run ty check src/     # type check — must pass before committing
+uv run ruff format src packages tests scripts  # format (line length 120)
+uv run ruff check src packages tests scripts   # lint — must pass before committing
+uv run ty check src packages                   # type check — must pass before committing
 uv run pytest tests/ -q  # test suite — must pass before committing
 uv run python scripts/check_docs.py       # docs cover every command
 uv run python scripts/render_tui_demo.py  # regenerate docs/tui.svg after TUI changes
@@ -30,11 +30,15 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 
 ## Layout
 
-Two packages ship from this repo: `bearkit` (the fundamentals for talking to
-Bear - no UI dependencies) and `bearcli` (the CLI/TUI product built on it).
-bearkit must never import from bearcli.
+Two distributions ship from this repo as a uv workspace, in lockstep
+versions: `bearkit` (`packages/bearkit/` - the library, deps: rapidfuzz +
+detect-secrets only) and `bearcli` (the CLI/TUI product, root package,
+depends on `bearkit==<same version>`). bearkit must never import from
+bearcli. Releases bump three strings together: both `version` fields and
+bearcli's bearkit pin; the release workflow enforces lockstep against the
+tag and publishes both.
 
-`src/bearkit/`:
+`packages/bearkit/src/bearkit/`:
 - `bear.py` — the `Bear` facade, the public entry point: reads delegate to
   `db`, writes to `ops`. Note's intrinsic helpers are methods (`has_tag`,
   `to_dict`, `status_line`); cross-resource operations stay functional in

@@ -9,8 +9,9 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 
-from bearcli.tui import BearUI
 from bearkit.db import Note
+
+from bearcli.tui import BearUI
 
 
 def note(note_id: str, title: str, text: str, tags: tuple[str, ...] = (), modified: str = "2026-07-27") -> Note:
