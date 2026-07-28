@@ -109,12 +109,12 @@ def _index_tags(tags: list[str]) -> str:
 
 
 def _index_rows(entries: list[dict]) -> list[str]:
-    rows = ["| Note | Tags | Modified |", "|---|---|---|"]
+    rows = ["| Note | Tags | Modified | ID |", "|---|---|---|---|"]
     for e in entries:
         title = _ellipsize(e["title"].replace("|", "\\|"), _INDEX_TITLE_LENGTH)
         link = f"[{title}]({e['path']})" if e["path"] else title
         note_cell = " ".join(part for part in (link, _entry_flags(e)) if part)
-        rows.append(f"| {note_cell} | {_index_tags(e['tags'])} | {(e['modified'] or '')[:10]} |")
+        rows.append(f"| {note_cell} | {_index_tags(e['tags'])} | {(e['modified'] or '')[:10]} | `{e['id']}` |")
     return rows
 
 
