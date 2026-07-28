@@ -269,7 +269,9 @@ class BearUI(App):
             if note.encrypted:
                 badge.append(" 🔒", "dim")
             if has_secret:
-                badge.append(" 🚨 ")
+                badge.append(" 🚨")
+            if badge:
+                badge.append("  ")
             row = RichTable.grid(expand=True)
             row.add_column(ratio=1, no_wrap=True, overflow="ellipsis")
             row.add_column(justify="right", no_wrap=True)
