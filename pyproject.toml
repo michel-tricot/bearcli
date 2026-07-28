@@ -1,6 +1,6 @@
 [project]
 name = "bearcli"
-version = "1.2.0"
+version = "1.2.1"
 description = "The missing CLI for Bear notes — read, search, export, and manage your notes from the terminal"
 readme = "README.md"
 keywords = ["bear", "notes", "cli", "markdown", "macos"]

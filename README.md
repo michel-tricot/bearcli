@@ -102,11 +102,11 @@ findings block the export with a list of the affected notes. Override with
 `--allow-secrets` (export as-is) or `--redact-secrets` (replace each secret
 with a `[redacted: <rule>]` placeholder — notes in Bear are untouched).
 
-> [!WARNING]
-> Detection and redaction are best-effort: a secret that reads like ordinary
-> text (a password written as prose, an account number) will not be caught.
-> Ideally, don't keep secrets in notes at all — use a password manager, or at
-> least Bear's encrypted notes, which never leave the app.
+> **⚠️ Warning** — detection and redaction are best-effort: a secret that
+> reads like ordinary text (a password written as prose, an account number)
+> will not be caught. Ideally, don't keep secrets in notes at all — use a
+> password manager, or at least Bear's encrypted notes, which never leave
+> the app.
 
 ```sh
 bearcli export ~/bear-backup
