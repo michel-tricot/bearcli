@@ -121,6 +121,17 @@
   td code { font-family: var(--mono); font-size: 13px; color: var(--accent-soft); white-space: nowrap; }
   td.desc { color: var(--muted); }
 
+  .callout {
+    margin-top: 18px;
+    border: 1px solid #6b5524;
+    background: #241d10;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: #d9c48a;
+  }
+  .callout strong { color: #edd9a3; }
+
   footer {
     margin-top: 56px; padding: 28px 0 44px;
     border-top: 1px solid var(--border);
@@ -195,7 +206,7 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
       </div>
       <div class="card">
         <h3>Secret protection</h3>
-        <p>Exports are scanned for credentials first — block, or <code>--redact-secrets</code> to replace them with placeholders. Fully offline. Best-effort: secrets that read like plain text won't be caught, so ideally keep secrets out of notes.</p>
+        <p>Exports are scanned for credentials first — block, or <code>--redact-secrets</code> to replace them with placeholders. Fully offline.</p>
       </div>
       <div class="card">
         <h3>Git mirroring</h3>
@@ -206,6 +217,14 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
         <p>Every listing has <code>json</code> and tab-separated <code>text</code> output, built for <code>jq</code>, <code>cut</code>, and pipes.</p>
       </div>
     </div>
+    <aside class="callout">
+      <strong>⚠️ A note on secrets.</strong>
+      Detection and redaction are best-effort: they catch known token formats,
+      credential assignments, and high-entropy strings, but a secret that reads
+      like ordinary text — a password written as prose, an account number —
+      will not be caught. Ideally, don't keep secrets in notes at all: use a
+      password manager, or Bear's encrypted notes, which never leave the app.
+    </aside>
   </section>
 
   <section id="commands">
