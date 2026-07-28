@@ -19,12 +19,10 @@ from textual.screen import ModalScreen
 from textual.widgets import Footer, Input, Label, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
 
-from bearcli import actions
+from bearcli import actions, ops
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note, note_status
-from bearcli.markdown import remove_tag_marker, tag_marker
 from bearcli.search import SearchResult, naive_search, search_notes
 from bearcli.secrets import redaction_map, scan_notes
-from bearcli.write import create_and_find
 
 HIGHLIGHT = "black on #dcb96a"
 SECRET_STYLE = "black on #ff9999"
@@ -457,8 +455,12 @@ class BearUI(App):
 
     @work(thread=True)
     def _save_note(self, note: Note, new_text: str) -> None:
-        actions.add_text(note.id, new_text, mode="replace_all")
-        self._finish_write(note.id, lambda db: self._modified_after(db, note), "Saved to Bear", "Save")
+        db = BearDB(self.db_path)
+        try:
+            fresh = ops.add_text(db, note, new_text, mode="replace_all")
+        finally:
+            db.close()
+        self._after_write(note.id, fresh, "Saved to Bear", "Save")
 
     @work(thread=True)
     def _create_note(self, text: str) -> None:
@@ -466,7 +468,7 @@ class BearUI(App):
         title = head.lstrip("# ").strip() or "Untitled"
         db = BearDB(self.db_path)
         try:
-            created = create_and_find(db, title, body.strip() or None)
+            created = ops.create_note(db, title, body.strip() or None)
             if created is not None:
                 self.notes.insert(0, created)
                 self.call_from_thread(self._run_filter, self.search_query)
@@ -479,24 +481,20 @@ class BearUI(App):
 
     @work(thread=True)
     def _tag_note(self, note: Note, tag: str, add: bool) -> None:
-        if add:
-            actions.add_text(note.id, tag_marker(tag), mode="append")
-            self._finish_write(
-                note.id, lambda db: self._has_tag(db, note.id, tag), f"Tagged with {tag!r}", "Tag", edit_after=True
-            )
-        else:
-            new_text = remove_tag_marker(note.text or "", tag)
-            if new_text is None:
-                self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
-                return
-            actions.add_text(note.id, new_text, mode="replace_all")
-            self._finish_write(
-                note.id,
-                lambda db: not self._has_tag(db, note.id, tag),
-                f"Removed tag {tag!r}",
-                "Untag",
-                edit_after=True,
-            )
+        db = BearDB(self.db_path)
+        try:
+            if add:
+                fresh = ops.add_tag(db, note, tag)
+            else:
+                try:
+                    fresh = ops.remove_tag(db, note, tag)
+                except LookupError:
+                    self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
+                    return
+        finally:
+            db.close()
+        message = f"Tagged with {tag!r}" if add else f"Removed tag {tag!r}"
+        self._after_write(note.id, fresh, message, "Tag" if add else "Untag", edit_after=True)
 
     def _file_away(self, operation: str) -> None:
         if note := self._selected():
@@ -504,14 +502,19 @@ class BearUI(App):
 
     @work(thread=True)
     def _file_away_worker(self, note: Note, operation: str) -> None:
-        if operation == "trash":
-            actions.trash_note(note.id)
-            ok = self._wait(lambda db: (n := db.get_note(note.id)) is not None and n.trashed)
-        else:
-            actions.archive_note(note.id)
-            ok = self._wait(lambda db: (n := db.get_note(note.id)) is not None and n.archived)
-        if ok:
+        db = BearDB(self.db_path)
+        try:
+            fresh = ops.trash(db, note) if operation == "trash" else ops.archive(db, note)
+        finally:
+            db.close()
+        if fresh is not None:
+            # Selection moves to the note that takes the removed one's place.
+            index = next((i for i, n in enumerate(self.shown) if n.id == note.id), None)
+            if index is not None and len(self.shown) > 1:
+                neighbour = self.shown[index + 1] if index + 1 < len(self.shown) else self.shown[index - 1]
+                self._select_id = neighbour.id
             self.notes = [n for n in self.notes if n.id != note.id]
+            self.secret_values.pop(note.id, None)
             self.call_from_thread(self._run_filter, self.search_query)
             self.call_from_thread(self.notify, f"{operation.capitalize()}ed {note.title!r}")
         else:
@@ -519,29 +522,10 @@ class BearUI(App):
 
     # ── write plumbing ───────────────────────────────────────────────────
 
-    @staticmethod
-    def _modified_after(db: BearDB, note: Note) -> bool:
-        fresh = db.get_note(note.id)
-        return (
-            fresh is not None
-            and fresh.modified is not None
-            and (note.modified is None or fresh.modified > note.modified)
-        )
-
-    @staticmethod
-    def _has_tag(db: BearDB, note_id: str, tag: str) -> bool:
-        fresh = db.get_note(note_id)
-        return fresh is not None and tag.lower() in (t.lower() for t in fresh.tags)
-
-    def _wait(self, predicate) -> bool:
-        db = BearDB(self.db_path)
-        try:
-            return actions.wait_for(lambda: predicate(db))
-        finally:
-            db.close()
-
-    def _finish_write(self, note_id: str, predicate, ok_message: str, operation: str, edit_after: bool = False) -> None:
-        if self._wait(predicate):
+    def _after_write(
+        self, note_id: str, fresh: Note | None, ok_message: str, operation: str, edit_after: bool = False
+    ) -> None:
+        if fresh is not None:
             self.call_from_thread(self.notify, ok_message)
             self._select_id = note_id
             if edit_after:

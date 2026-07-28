@@ -45,8 +45,8 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
   matches in output; never print the secret itself.
 - `src/bearcli/markdown.py` — Bear markdown conventions (attachment link
   rewriting, tag markers) shared by CLI, TUI, and export.
-- `src/bearcli/write.py` — write flows shared by CLI and TUI (fire action,
-  verify via db).
+- `src/bearcli/ops.py` — verified write operations shared by CLI and TUI:
+  fire the Bear action, confirm via the database, return the fresh note.
 - `src/bearcli/tui.py` — the interactive `ui` Textual app (search, edit, create, tag; writes via actions.py, verified like the CLI).
 - `src/bearcli/gitsync.py` — `export --push`: commit/merge/push convergence
   loop treating the destination repo as a one-way mirror (Bear wins in HEAD,

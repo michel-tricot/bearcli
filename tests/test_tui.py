@@ -202,3 +202,25 @@ def test_pending_edit_selects_and_opens_editor():
             assert app.editing is not None and app.editing.id == "N2"
 
     run(probe())
+
+
+def test_removal_selects_neighbour():
+    async def probe():
+        notes = [make_note(f"N{i}", f"Note {i}") for i in range(1, 5)]
+        app = BearUI(notes)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            results = app.query_one("#results", OptionList)
+            results.highlighted = 1  # "Note 2"
+            # simulate the post-removal path the worker takes
+            removed = app.shown[1]
+            index = 1
+            neighbour = app.shown[index + 1]
+            app._select_id = neighbour.id
+            app.notes = [n for n in app.notes if n.id != removed.id]
+            app._run_filter(app.search_query)
+            await pilot.pause(0.5)
+            assert results.highlighted == 1  # now "Note 3", in the removed slot
+            assert app.shown[results.highlighted].id == "N3"
+
+    run(probe())

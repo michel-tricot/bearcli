@@ -11,7 +11,7 @@ import typer
 from rich import box
 from rich.table import Table
 
-from bearcli import actions
+from bearcli import actions, ops
 from bearcli.cli.common import (
     DbPathOption,
     OnlyFilter,
@@ -21,15 +21,13 @@ from bearcli.cli.common import (
     _parse_date,
     _require_note,
     _text_or_stdin,
-    _verify,
     console,
     note_app,
 )
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note, note_status
-from bearcli.markdown import remove_tag_marker, rewrite_attachment_refs, tag_marker
+from bearcli.markdown import rewrite_attachment_refs
 from bearcli.search import naive_search, search_notes
 from bearcli.secrets import redact_text, redaction_map, scan_notes
-from bearcli.write import create_and_find
 
 
 def _resolve_attachments(note: Note) -> str:
@@ -207,8 +205,15 @@ def get(
     print(text)
 
 
+def _report(fresh: Note | None, success: str, failure: str) -> None:
+    if fresh is None:
+        console.print(f"[red]Error:[/red] {failure}")
+        raise typer.Exit(1)
+    console.print(success)
+
+
 def _create_and_report(db: BearDB, title: str, text: str | None, tags: list[str] | None) -> None:
-    created = create_and_find(db, title, text, tags)
+    created = ops.create_note(db, title, text, tags)
     if created is None:
         console.print("[red]Error:[/red] note did not appear in the Bear database; is Bear able to run?")
         raise typer.Exit(1)
@@ -245,13 +250,8 @@ def append(
     db = _open_db(db_path)
     try:
         before = _require_note(db, note_id)
-        actions.add_text(before.id, body, mode="prepend" if prepend else "append")
-        _verify(
-            lambda: (
-                (n := db.get_note(before.id)) is not None
-                and n.modified is not None
-                and (before.modified is None or n.modified > before.modified)
-            ),
+        _report(
+            ops.add_text(db, before, body, mode="prepend" if prepend else "append"),
             f"Updated note {before.id}",
             "note was not modified; is Bear able to run?",
         )
@@ -271,12 +271,7 @@ def trash(
         if note.trashed:
             console.print(f"Note {note.id} is already in the trash")
             return
-        actions.trash_note(note.id)
-        _verify(
-            lambda: (n := db.get_note(note.id)) is not None and n.trashed,
-            f"Trashed note {note.id}",
-            "note was not trashed; is Bear able to run?",
-        )
+        _report(ops.trash(db, note), f"Trashed note {note.id}", "note was not trashed; is Bear able to run?")
     finally:
         db.close()
 
@@ -293,18 +288,9 @@ def archive(
         if note.archived:
             console.print(f"Note {note.id} is already archived")
             return
-        actions.archive_note(note.id)
-        _verify(
-            lambda: (n := db.get_note(note.id)) is not None and n.archived,
-            f"Archived note {note.id}",
-            "note was not archived; is Bear able to run?",
-        )
+        _report(ops.archive(db, note), f"Archived note {note.id}", "note was not archived; is Bear able to run?")
     finally:
         db.close()
-
-
-def _has_tag(note: Note, name: str) -> bool:
-    return name.lower() in (t.lower() for t in note.tags)
 
 
 @note_app.command()
@@ -317,12 +303,11 @@ def tag(
     db = _open_db(db_path)
     try:
         note = _require_note(db, note_id)
-        if _has_tag(note, name):
+        if ops.has_tag(note, name):
             console.print(f"Note {note.id} already has tag {name!r}")
             return
-        actions.add_text(note.id, tag_marker(name), mode="append")
-        _verify(
-            lambda: (n := db.get_note(note.id)) is not None and _has_tag(n, name),
+        _report(
+            ops.add_tag(db, note, name),
             f"Tagged note {note.id} with {name!r}",
             "tag did not appear; is Bear able to run?",
         )
@@ -340,21 +325,17 @@ def untag(
     db = _open_db(db_path)
     try:
         note = _require_note(db, note_id)
-        if not _has_tag(note, name) or note.text is None:
+        if not ops.has_tag(note, name) or note.text is None:
             console.print(
                 f"[red]Error:[/red] note {note.id} has no tag {name!r} (tags: {', '.join(note.tags) or 'none'})"
             )
             raise typer.Exit(1)
-        new_text = remove_tag_marker(note.text, name)
-        if new_text is None:
+        try:
+            fresh = ops.remove_tag(db, note, name)
+        except LookupError:
             console.print(f"[red]Error:[/red] could not locate the #{name} marker in the note text")
-            raise typer.Exit(1)
-        actions.add_text(note.id, new_text, mode="replace_all")
-        _verify(
-            lambda: (n := db.get_note(note.id)) is not None and not _has_tag(n, name),
-            f"Removed tag {name!r} from note {note.id}",
-            "tag was not removed; is Bear able to run?",
-        )
+            raise typer.Exit(1) from None
+        _report(fresh, f"Removed tag {name!r} from note {note.id}", "tag was not removed; is Bear able to run?")
     finally:
         db.close()
 
@@ -398,10 +379,8 @@ def attach(
     db = _open_db(db_path)
     try:
         note = _require_note(db, note_id)
-        before = len(note.attachments)
-        actions.add_file(note.id, file.name, base64.b64encode(data).decode())
-        _verify(
-            lambda: (n := db.get_note(note.id)) is not None and len(n.attachments) > before,
+        _report(
+            ops.attach_file(db, note, file.name, base64.b64encode(data).decode()),
             f"Attached {file.name} to note {note.id}",
             "attachment did not appear; is Bear able to run?",
         )
@@ -422,14 +401,8 @@ def rename(
         if note.text is None:
             console.print(f"[red]Error:[/red] note {note.id} is encrypted; cannot rename")
             raise typer.Exit(1)
-        head, sep, body = note.text.partition("\n")
-        if head.startswith("# "):
-            new_text = f"# {new_title}{sep}{body}"
-        else:
-            new_text = f"# {new_title}\n{note.text}"
-        actions.add_text(note.id, new_text, mode="replace_all")
-        _verify(
-            lambda: (n := db.get_note(note.id)) is not None and n.title == new_title,
+        _report(
+            ops.rename(db, note, new_title),
             f"Renamed note {note.id} to {new_title!r}",
             "title did not change; is Bear able to run?",
         )
@@ -451,13 +424,8 @@ def replace(
     db = _open_db(db_path)
     try:
         before = _require_note(db, note_id)
-        actions.add_text(before.id, body, mode="replace")
-        _verify(
-            lambda: (
-                (n := db.get_note(before.id)) is not None
-                and n.modified is not None
-                and (before.modified is None or n.modified > before.modified)
-            ),
+        _report(
+            ops.add_text(db, before, body, mode="replace"),
             f"Replaced body of note {before.id}",
             "note was not modified; is Bear able to run?",
         )
