@@ -542,3 +542,19 @@ def untag(
         )
     finally:
         db.close()
+
+
+@app.command("open")
+def open_note(
+    note_id: Annotated[str, typer.Argument(help="Note identifier.")],
+    new_window: Annotated[bool, typer.Option("--new-window", "-w", help="Open in a separate window.")] = False,
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Open a note in the Bear app."""
+    db = _open_db(db_path)
+    try:
+        note = _require_note(db, note_id)
+    finally:
+        db.close()
+    actions.open_note(note.id, new_window=new_window)
+    console.print(f"Opened note {note.id} in Bear")

@@ -15,10 +15,11 @@ from urllib.parse import quote, urlencode
 BASE_URL = "bear://x-callback-url/"
 
 
-def call_bear(action: str, **params: str | None) -> None:
+def call_bear(action: str, foreground: bool = False, **params: str | None) -> None:
     query = urlencode({k: v for k, v in params.items() if v is not None}, quote_via=quote)
     # -g keeps Bear in the background instead of stealing focus.
-    subprocess.run(["open", "-g", f"{BASE_URL}{action}?{query}"], check=True)
+    cmd = ["open", f"{BASE_URL}{action}?{query}"] if foreground else ["open", "-g", f"{BASE_URL}{action}?{query}"]
+    subprocess.run(cmd, check=True)
 
 
 def create_note(title: str, text: str | None = None, tags: list[str] | None = None) -> None:
@@ -34,6 +35,10 @@ def create_note(title: str, text: str | None = None, tags: list[str] | None = No
 
 def add_text(note_id: str, text: str, mode: str = "append") -> None:
     call_bear("add-text", id=note_id, text=text, mode=mode, open_note="no", show_window="no")
+
+
+def open_note(note_id: str, new_window: bool = False) -> None:
+    call_bear("open-note", foreground=True, id=note_id, new_window="yes" if new_window else "no")
 
 
 def trash_note(note_id: str) -> None:

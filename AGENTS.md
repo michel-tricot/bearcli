@@ -26,7 +26,7 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 ## Layout
 
 - `src/bearcli/cli.py` — Typer app (commands: `list`, `get`, `export`,
-  `create`, `append`, `trash`, `archive`, `tags`, `tag`, `untag`). All
+  `create`, `append`, `trash`, `archive`, `tags`, `tag`, `untag`, `open`). All
   presentation (Rich tables, JSON/text formats, spinner) lives here.
 - `src/bearcli/actions.py` — write actions via Bear's x-callback-url scheme.
   No database access; fire-and-forget `open -g bear://...` calls.

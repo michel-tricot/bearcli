@@ -56,6 +56,9 @@ bearcli tags                                 # all tags with note counts
 bearcli list --tag work                      # notes with a tag (incl. nested)
 bearcli tag C44D09DC-... "work/ideas"        # add a tag to a note
 bearcli untag C44D09DC-... "work/ideas"      # remove a tag from a note
+
+# Open a note in the Bear app
+bearcli open C44D09DC-...
 ```
 
 Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`).
