@@ -86,6 +86,10 @@ contents read/write on homebrew-tap only). The formula installs the PyPI
 sdist into a private venv with its dependencies; it deliberately does not
 use Homebrew's `virtualenv_install_with_resources` (built for homebrew-core:
 no-deps + pinned resource blocks we would have to regenerate every release).
+The venv is created with `--clear` and pip runs with `--ignore-installed`:
+Homebrew strips pip's RECORD metadata from kegs and `python -m venv` reuses
+an existing directory, so without those flags any reinstall or same-version
+rebuild fails with pip's uninstall-no-record-file error.
 
 bearkit API conventions: the `Bear` facade is the public interface (reads
 via `BearDB`, verified writes via `ops`); intrinsic pure helpers are `Note`
