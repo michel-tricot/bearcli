@@ -98,6 +98,15 @@ def _highlighted(value: str, query: str, base_style: str = "") -> Text:
 class SecretTextArea(TextArea):
     """TextArea that renders detected secret values on a light red background."""
 
+    # With tab_behavior="indent", TextArea claims escape as its focus-escape
+    # key; route it to the app's editor-exit instead.
+    BINDINGS = [Binding("escape", "editor_escape", show=False)]
+
+    def action_editor_escape(self) -> None:
+        app = self.app
+        assert isinstance(app, BearUI)
+        app.action_back_or_quit()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.secret_values: list[str] = []
