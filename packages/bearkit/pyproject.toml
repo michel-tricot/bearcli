@@ -1,7 +1,7 @@
 [project]
 name = "bearkit"
 version = "1.6.1"
-description = "Python toolkit for the Bear notes app — read, search, secret detection, and verified writes"
+description = "Python toolkit for the Bear notes app - read, search, secret detection, and verified writes"
 readme = "README.md"
 keywords = ["bear", "notes", "markdown", "macos"]
 classifiers = [
