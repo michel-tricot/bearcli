@@ -23,6 +23,6 @@ _alias("create", "note create", create)
 
 # Imported after the aliases: help panels render in registration order, and
 # Shortcuts should lead the top-level help.
-from bearcli.cli import export, misc, skills, tags  # noqa: E402, F401  # command registration
+from bearcli.cli import export, mcp, misc, skills, tags  # noqa: E402, F401  # command registration
 
 __all__ = ["app"]

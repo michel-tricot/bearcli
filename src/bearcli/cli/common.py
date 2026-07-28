@@ -40,11 +40,15 @@ tag_app = typer.Typer(help="List and manage tags.", no_args_is_help=True)
 
 skills_app = typer.Typer(help="Agent skills bundled with bearcli.", no_args_is_help=True)
 
+mcp_app = typer.Typer(help="MCP server for AI apps (Claude Desktop, Claude Code, ...).", no_args_is_help=True)
+
 app.add_typer(note_app, name="note", rich_help_panel="Notes & tags")
 
 app.add_typer(tag_app, name="tag", rich_help_panel="Notes & tags")
 
 app.add_typer(skills_app, name="skills", rich_help_panel="Agents")
+
+app.add_typer(mcp_app, name="mcp", rich_help_panel="Agents")
 
 console = Console()
 

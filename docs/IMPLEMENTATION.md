@@ -111,7 +111,7 @@ connection just to fire a URL.
 
 ## MCP server
 
-`bearcli mcp` serves the library over the Model Context Protocol using
+`bearcli mcp run` serves the library over the Model Context Protocol using
 FastMCP, stdio transport only - no SSE/HTTP: the server reads the local
 Bear database, so a network transport would only invite remote access to
 it. Tools mirror the facade (list/get/search/tags, verified writes,
@@ -119,7 +119,10 @@ open-in-Bear). Two deliberate choices: every tool call opens a fresh
 `Bear` so long-lived Claude Desktop sessions always see current notes, and
 `get_note` redacts secrets by default - MCP tool results are sent to the
 model provider, so raw credentials only travel when the user explicitly
-passes redact_secrets=false.
+passes redact_secrets=false. `bearcli mcp install` holds a small client
+registry (Claude Code via `claude mcp add`, JSON-config clients edited in
+place with a `.bak`, the rest get printed instructions) so users never
+hand-edit configs to adopt the server.
 
 ## CLI design (`cli.py`)
 

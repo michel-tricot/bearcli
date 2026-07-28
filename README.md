@@ -166,22 +166,22 @@ Reinstall after upgrading so agents always match the installed CLI.
 
 ## MCP server
 
-`bearcli mcp` serves your notes to AI apps over the Model Context Protocol
-(stdio): list, read, search, create, edit, tag, archive/trash, and
+`bearcli mcp run` serves your notes to AI apps over the Model Context
+Protocol (stdio): list, read, search, create, edit, tag, archive/trash, and
 open-in-Bear, with the same verified writes as the CLI. Note content is
 secret-redacted by default before it reaches the model.
 
-For Claude Desktop, add to `claude_desktop_config.json`:
+`bearcli mcp install` wires it into your client - pick interactively, or
+name one directly:
 
-```json
-{
-  "mcpServers": {
-    "bear": { "command": "bearcli", "args": ["mcp"] }
-  }
-}
+```sh
+bearcli mcp install                  # choose from a list
+bearcli mcp install claude-desktop   # or: claude-code, cursor, vscode,
+                                     #     windsurf, gemini-cli, zed, codex
 ```
 
-(Use the full path from `which bearcli` if the app doesn't see your PATH.)
+Clients with JSON configs are updated in place (a `.bak` is kept); the rest
+get exact instructions printed. Restart the client afterwards.
 
 ## Use as a library
 
