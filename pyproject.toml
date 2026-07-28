@@ -1,0 +1,19 @@
+[project]
+name = "bearcli"
+version = "0.1.0"
+description = "CLI to read notes from the Bear note app"
+readme = "README.md"
+authors = [
+    { name = "Michel Tricot", email = "michel.tricot@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "typer>=0.27.0",
+]
+
+[project.scripts]
+bearcli = "bearcli.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"
