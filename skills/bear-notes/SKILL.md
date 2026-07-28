@@ -6,7 +6,10 @@ description: Read, search, create, and manage the user's Bear notes with the bea
 # Working with Bear notes via bearcli
 
 bearcli reads notes directly and performs writes through the Bear app,
-verifying each change. Requires macOS with Bear installed. Install: `uv tool install bearcli`.
+verifying each change. Requires macOS with Bear installed. If `bearcli` is
+not on PATH (command not found), install it — ask the user first:
+`brew install michel-tricot/tap/bearcli` (or `uv tool install bearcli`, or
+`pipx install bearcli`).
 
 ## Reading and searching
 
