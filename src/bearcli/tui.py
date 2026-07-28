@@ -167,7 +167,7 @@ class BrowseApp(App):
 
     def on_mount(self) -> None:
         self._show_results("", [SearchResult(note=n, snippet="") for n in self.notes])
-        self.query_one("#query", Input).focus()
+        self.query_one("#results", OptionList).focus()
 
     def action_focus_search(self) -> None:
         query = self.query_one("#query", Input)
