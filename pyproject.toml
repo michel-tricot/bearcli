@@ -6,6 +6,8 @@ readme = "README.md"
 authors = [
     { name = "Michel Tricot", email = "michel.tricot@gmail.com" }
 ]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.13"
 dependencies = [
     "rapidfuzz>=3.14.5",

@@ -59,6 +59,15 @@ See `docs/IMPLEMENTATION.md` for Bear's schema details and export design.
 - Encrypted notes (`ZENCRYPTED = 1`) have no readable text; surface them in
   listings/indexes but never fail trying to read their content.
 
+## Documentation
+
+When changing the CLI surface (commands added/removed/renamed, notable flags,
+changed behavior), update `README.md` (usage examples) and `docs/index.html`
+(the GitHub Pages one-pager: command table, demo terminal if output changed)
+in the same commit. CI runs `scripts/check_docs.py`, which fails if any
+command is missing from either file — but it only checks command names, so
+keeping descriptions and examples accurate is on you.
+
 ## Conventions
 
 - Machine-readable output (`-f text`, `-f json`, `--ids`) goes through plain
