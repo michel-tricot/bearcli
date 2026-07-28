@@ -263,8 +263,10 @@ class BearUI(App):
             if note.tags:
                 label.append("  ")
                 label.append(_highlighted(" ".join(f"#{t}" for t in note.tags), query, "dim cyan"))
+            if note.encrypted:
+                label.append("  🔒", "dim")
             if self.secret_counts.get(note.id):
-                label.append("  🔑", "yellow")
+                label.append("  ⚠", "yellow")
             options.append(Option(label, id=note.id))
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
@@ -295,16 +297,23 @@ class BearUI(App):
             meta.append(f"created  {note.created.strftime('%Y-%m-%d %H:%M')}\n", "dim")
         if note.modified:
             meta.append(f"modified {note.modified.strftime('%Y-%m-%d %H:%M')}\n", "dim")
-        meta.append(f"words    {len((note.text or '').split())}\n", "dim")
+        if not note.encrypted:
+            meta.append(f"words    {len((note.text or '').split())}\n", "dim")
         if note.tags:
             meta.append(f"tags     {', '.join(note.tags)}\n", "dim")
         if status:
             meta.append(f"status   {status}\n", "dim")
         if secrets := self.secret_counts.get(note.id):
-            meta.append(f"secrets  🔑 {secrets} potential - careful when sharing\n", "yellow")
+            meta.append(f"secrets  ⚠ {secrets} potential - careful when sharing\n", "yellow")
         meta.append("─" * 30 + "\n", "dim")
-        body = "\n".join((note.text or "").splitlines()[:60])
-        meta.append(_highlighted(body, self.search_query))
+        if note.encrypted:
+            meta.append("\n🔒 This note is encrypted.\n", "bold")
+            meta.append("Its content can only be viewed in Bear - press ", "dim")
+            meta.append("o", "bold")
+            meta.append(" to open it there.\n", "dim")
+        else:
+            body = "\n".join((note.text or "").splitlines()[:60])
+            meta.append(_highlighted(body, self.search_query))
         return meta
 
     def on_option_list_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
