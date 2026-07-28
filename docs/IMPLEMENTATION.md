@@ -132,6 +132,16 @@ Decisions and their reasons:
   CLI renders it as a Rich status spinner (escaping titles so `[...]` isn't
   parsed as markup).
 
+## Secret scanning (`secrets.py`)
+
+Export runs a blocking pre-pass over every note (including archived) before
+writing anything: ~15 curated regexes for structured credentials (AWS/GitHub/
+Slack/Stripe/OpenAI token formats, private key blocks, JWTs, `password:`-style
+assignments). Findings are reported with note title/id, rule, and line — the
+matched text itself is redacted to its first characters, never echoed.
+`--allow-secrets` bypasses. Deliberately not a gitleaks replacement: it can't
+catch secrets written as prose, and the docs say so.
+
 ## Git mirroring (`gitsync.py`)
 
 `export --push` treats the destination as a one-way mirror clone: Bear is the

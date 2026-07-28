@@ -24,6 +24,7 @@ from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
 from bearcli.search import naive_search, search_notes
+from bearcli.secrets import SecretFinding, scan_notes
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
 note_app = typer.Typer(help="Create, read, and modify notes.", no_args_is_help=True)
@@ -289,6 +290,23 @@ def get(
     print(text)
 
 
+def _report_secrets(findings: list[SecretFinding]) -> None:
+    table = Table(box=box.ROUNDED, header_style="bold")
+    table.add_column("Note", overflow="ellipsis", max_width=30)
+    table.add_column("ID", style="dim", no_wrap=True)
+    table.add_column("Rule", style="yellow")
+    table.add_column("Line", justify="right")
+    table.add_column("Match", style="red")
+    for f in findings:
+        table.add_row(f.note_title, f.note_id, f.rule, str(f.line), f.excerpt)
+    console.print(table)
+    notes = len({f.note_id for f in findings})
+    console.print(
+        f"[red]Export blocked:[/red] {len(findings)} potential secret(s) in {notes} note(s). "
+        "Move them somewhere safe (or into an encrypted note), or re-run with --allow-secrets."
+    )
+
+
 @app.command()
 def export(
     dest: Annotated[Path, typer.Argument(help="Destination directory for the markdown files.")],
@@ -307,11 +325,22 @@ def export(
             "truth — remote or manual edits are kept in history but overwritten in HEAD.",
         ),
     ] = False,
+    allow_secrets: Annotated[
+        bool,
+        typer.Option("--allow-secrets", help="Export even if the secret scan finds potential credentials."),
+    ] = False,
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Export all notes as markdown files with frontmatter and attachments."""
     db = _open_db(db_path)
     try:
+        if not allow_secrets:
+            with console.status("Scanning notes for secrets…", spinner="dots"):
+                candidates = db.list_notes(limit=None, include_archived=True, with_text=True)
+                findings = scan_notes(candidates)
+            if findings:
+                _report_secrets(findings)
+                raise typer.Exit(1)
         with console.status("Exporting…", spinner="dots") as status:
             update = lambda msg: status.update(rich_escape(msg))  # noqa: E731
             if push:

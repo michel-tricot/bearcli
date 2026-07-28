@@ -95,6 +95,10 @@ Every note becomes a self-contained directory — `<slug>/README.md` plus its
 attachments — with a generated index, so GitHub renders the whole export as a
 browsable tree.
 
+Before anything is written, the notes are scanned for potential secrets
+(token formats, key blocks, credential assignments); findings block the export
+with a list of the affected notes (`--allow-secrets` overrides).
+
 ```sh
 bearcli export ~/bear-backup
 bearcli export ~/bear-backup --sync          # only rewrite notes that changed
