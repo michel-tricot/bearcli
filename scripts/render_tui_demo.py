@@ -91,7 +91,7 @@ def _strip_chrome(svg: str) -> str:
 
 async def main() -> None:
     app = BearUI(list(NOTES))
-    async with app.run_test(size=(110, 30)) as pilot:
+    async with app.run_test(size=(118, 30)) as pilot:
         await pilot.pause(1.0)  # let the secrets scan land
         svg = _strip_chrome(app.export_screenshot())
     out = Path(__file__).parent.parent / "docs" / "tui.svg"
