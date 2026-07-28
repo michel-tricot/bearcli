@@ -26,7 +26,7 @@ database. Your notes are never touched behind Bear's back.
 ## Install
 
 ```sh
-uv tool install git+https://github.com/michel-tricot/bearcli
+uv tool install bearcli        # or: uvx bearcli, pipx install bearcli
 ```
 
 Or from a clone: `uv sync`, then `uv run bearcli --help`.

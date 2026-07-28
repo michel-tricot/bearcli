@@ -1,8 +1,16 @@
 [project]
 name = "bearcli"
-version = "0.1.0"
-description = "CLI to read notes from the Bear note app"
+version = "1.0.0"
+description = "The missing CLI for Bear notes — read, search, export, and manage your notes from the terminal"
 readme = "README.md"
+keywords = ["bear", "notes", "cli", "markdown", "macos"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Utilities",
+]
 authors = [
     { name = "Michel Tricot", email = "michel.tricot@gmail.com" }
 ]
@@ -13,6 +21,11 @@ dependencies = [
     "rapidfuzz>=3.14.5",
     "typer>=0.27.0",
 ]
+
+[project.urls]
+Homepage = "https://michel-tricot.github.io/bearcli/"
+Repository = "https://github.com/michel-tricot/bearcli"
+Documentation = "https://github.com/michel-tricot/bearcli/blob/main/docs/IMPLEMENTATION.md"
 
 [project.scripts]
 bearcli = "bearcli.cli:app"
