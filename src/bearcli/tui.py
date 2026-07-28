@@ -272,12 +272,11 @@ class BearUI(App):
                 badge.append(" 🔒", "dim")
             if has_secret:
                 badge.append(" 🚨")
-            if badge:
-                badge.append("\u00a0\u00a0")  # NBSPs: right-justify strips plain trailing spaces
             row = RichTable.grid(expand=True)
             row.add_column(ratio=1, no_wrap=True, overflow="ellipsis")
             row.add_column(justify="right", no_wrap=True)
-            row.add_row(label, badge)
+            row.add_column(width=2)  # spacer between badges and the scrollbar
+            row.add_row(label, badge, "")
             if has_secret:
                 row.style = "on dark_red"
             options.append(Option(row, id=note.id))
