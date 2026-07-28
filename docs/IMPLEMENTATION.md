@@ -142,14 +142,25 @@ with no known format. Findings are reported with note title/id, rule, and
 line — the matched text is redacted to its first characters, never echoed.
 `--allow-secrets` bypasses. Everything runs offline.
 
-Two integration traps, learned the hard way: detect-secrets' `scan_line`
-helper enables *eager search*, which makes the entropy plugins report every
-token (240k "findings" on this library) — plugins must be instantiated and
-run via `analyze_line` directly, with the heuristic false-positive filters
-(UUIDs, sequential/templated strings, id-like lines) applied by hand. And the
-hex entropy limit is raised to 3.5 (default 3.0) because notes are full of
-UUID and hash fragments. Tuned result on ~1900 real notes: ~25 findings, all
-plausible, in ~1s. It can't catch secrets written as prose.
+Integration traps, learned the hard way: detect-secrets' `scan_line` helper
+enables *eager search*, which makes the entropy plugins report every token
+(240k "findings" on this library) — plugins must be instantiated and run via
+`analyze_line` directly, with the heuristic false-positive filters (UUIDs,
+sequential/templated strings, id-like lines) applied by hand. More
+fundamentally, **detect-secrets' entropy plugins only match quoted strings**
+(their regex requires `'` or `"` delimiters), which pasted keys in notes
+never have — so bearcli scans unquoted base64/hex token runs itself (20+
+chars; hex limit 3.5 vs default 3.0 because notes are full of UUID/hash
+fragments; runs inside URLs are skipped, since Google-Docs-style link ids are
+high-entropy but shareable references, not credentials).
+
+Two note-specific detectors supplement the plugins: detected values are
+expanded to the full whitespace-delimited token before redaction (format
+detectors can match only a prefix — a 1.5k-char JWT was once left half
+redacted), and a bare credential label ("Client secret:") flags the next
+content line as a Labeled Credential, skipping code fences — notes often put
+the value on the line below the label. It can't catch secrets written as
+prose.
 
 ## Git mirroring (`gitsync.py`)
 
