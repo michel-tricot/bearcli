@@ -92,10 +92,15 @@ def _entry_flags(entry: dict) -> str:
     return flags
 
 
+_INDEX_TITLE_LENGTH = 60
+
+
 def _index_rows(entries: list[dict]) -> list[str]:
     rows = ["| Note | Tags | Modified | |", "|---|---|---|---|"]
     for e in entries:
         title = e["title"].replace("|", "\\|")
+        if len(title) > _INDEX_TITLE_LENGTH:
+            title = title[: _INDEX_TITLE_LENGTH - 1].rstrip() + "…"
         link = f"[{title}]({e['path']})" if e["path"] else title
         modified = (e["modified"] or "")[:10]
         rows.append(f"| {link} | {', '.join(e['tags'])} | {modified} | {_entry_flags(e)} |")
