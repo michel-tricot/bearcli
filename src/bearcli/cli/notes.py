@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated
 
@@ -79,7 +80,7 @@ def list_notes(
             created_before=_parse_date(created_before, "--created-before"),
             modified_after=_parse_date(modified_after, "--modified-after"),
             modified_before=_parse_date(modified_before, "--modified-before"),
-            only=only.value if only else None,
+            only=only,
             include_trashed=trashed,
             include_archived=archived,
         )
@@ -205,18 +206,21 @@ def get(
     print(text)
 
 
-def _report(fresh: Note | None, success: str, failure: str) -> None:
-    if fresh is None:
+def _perform(operation: Callable[[], Note], success: str, failure: str) -> None:
+    try:
+        operation()
+    except ops.BearWriteError:
         console.print(f"[red]Error:[/red] {failure}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     console.print(success)
 
 
-def _create_and_report(db: BearDB, title: str, text: str | None, tags: list[str] | None) -> None:
-    created = ops.create_note(db, title, text, tags)
-    if created is None:
+def _create_and_perform(db: BearDB, title: str, text: str | None, tags: list[str] | None) -> None:
+    try:
+        created = ops.create_note(db, title, text, tags)
+    except ops.BearWriteError:
         console.print("[red]Error:[/red] note did not appear in the Bear database; is Bear able to run?")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     console.print(f"Created note {created.id}")
 
 
@@ -230,7 +234,7 @@ def create(
     """Create a new note in Bear."""
     db = _open_db(db_path)
     try:
-        _create_and_report(db, title, _text_or_stdin(text), tags)
+        _create_and_perform(db, title, _text_or_stdin(text), tags)
     finally:
         db.close()
 
@@ -250,8 +254,8 @@ def append(
     db = _open_db(db_path)
     try:
         before = _require_note(db, note_id)
-        _report(
-            ops.add_text(db, before, body, mode="prepend" if prepend else "append"),
+        _perform(
+            lambda: ops.add_text(db, before, body, mode=ops.TextMode.PREPEND if prepend else ops.TextMode.APPEND),
             f"Updated note {before.id}",
             "note was not modified; is Bear able to run?",
         )
@@ -271,7 +275,7 @@ def trash(
         if note.trashed:
             console.print(f"Note {note.id} is already in the trash")
             return
-        _report(ops.trash(db, note), f"Trashed note {note.id}", "note was not trashed; is Bear able to run?")
+        _perform(lambda: ops.trash(db, note), f"Trashed note {note.id}", "note was not trashed; is Bear able to run?")
     finally:
         db.close()
 
@@ -288,7 +292,9 @@ def archive(
         if note.archived:
             console.print(f"Note {note.id} is already archived")
             return
-        _report(ops.archive(db, note), f"Archived note {note.id}", "note was not archived; is Bear able to run?")
+        _perform(
+            lambda: ops.archive(db, note), f"Archived note {note.id}", "note was not archived; is Bear able to run?"
+        )
     finally:
         db.close()
 
@@ -306,8 +312,8 @@ def tag(
         if ops.has_tag(note, name):
             console.print(f"Note {note.id} already has tag {name!r}")
             return
-        _report(
-            ops.add_tag(db, note, name),
+        _perform(
+            lambda: ops.add_tag(db, note, name),
             f"Tagged note {note.id} with {name!r}",
             "tag did not appear; is Bear able to run?",
         )
@@ -331,11 +337,14 @@ def untag(
             )
             raise typer.Exit(1)
         try:
-            fresh = ops.remove_tag(db, note, name)
-        except LookupError:
+            _perform(
+                lambda: ops.remove_tag(db, note, name),
+                f"Removed tag {name!r} from note {note.id}",
+                "tag was not removed; is Bear able to run?",
+            )
+        except ops.TagMarkerNotFound:
             console.print(f"[red]Error:[/red] could not locate the #{name} marker in the note text")
             raise typer.Exit(1) from None
-        _report(fresh, f"Removed tag {name!r} from note {note.id}", "tag was not removed; is Bear able to run?")
     finally:
         db.close()
 
@@ -379,8 +388,8 @@ def attach(
     db = _open_db(db_path)
     try:
         note = _require_note(db, note_id)
-        _report(
-            ops.attach_file(db, note, file.name, base64.b64encode(data).decode()),
+        _perform(
+            lambda: ops.attach_file(db, note, file.name, base64.b64encode(data).decode()),
             f"Attached {file.name} to note {note.id}",
             "attachment did not appear; is Bear able to run?",
         )
@@ -401,8 +410,8 @@ def rename(
         if note.text is None:
             console.print(f"[red]Error:[/red] note {note.id} is encrypted; cannot rename")
             raise typer.Exit(1)
-        _report(
-            ops.rename(db, note, new_title),
+        _perform(
+            lambda: ops.rename(db, note, new_title),
             f"Renamed note {note.id} to {new_title!r}",
             "title did not change; is Bear able to run?",
         )
@@ -424,8 +433,8 @@ def replace(
     db = _open_db(db_path)
     try:
         before = _require_note(db, note_id)
-        _report(
-            ops.add_text(db, before, body, mode="replace"),
+        _perform(
+            lambda: ops.add_text(db, before, body, mode=ops.TextMode.REPLACE),
             f"Replaced body of note {before.id}",
             "note was not modified; is Bear able to run?",
         )
@@ -456,7 +465,6 @@ def search(
             tag=tag_filter,
             include_trashed=trashed,
             include_archived=archived,
-            with_text=True,
         )
     finally:
         db.close()

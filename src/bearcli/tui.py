@@ -6,7 +6,7 @@ by re-reading the database, mirroring the CLI's write commands.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from rich.console import Group, RenderableType
@@ -487,7 +487,7 @@ class BearUI(App):
         db = BearDB(self.db_path)
         try:
             only = {"archive": "archived", "trash": "trashed"}.get(self.view)
-            notes = db.list_notes(limit=None, tag=self.tag_filter, with_text=True, only=only)
+            notes = db.list_notes(limit=None, tag=self.tag_filter, only=only)
         finally:
             db.close()
         self.notes = notes
@@ -745,44 +745,40 @@ class BearUI(App):
 
     @work(thread=True)
     def _save_note(self, note: Note, new_text: str) -> None:
-        db = BearDB(self.db_path)
-        try:
-            fresh = ops.add_text(db, note, new_text, mode="replace_all")
-        finally:
-            db.close()
+        fresh = self._attempt(lambda db: ops.add_text(db, note, new_text, mode=ops.TextMode.REPLACE_ALL))
         self._after_write(note.id, fresh, "Saved to Bear", "Save")
+
+    def _attempt(self, operation: Callable[[BearDB], Note]) -> Note | None:
+        """Run a verified write against a fresh db handle; None if Bear didn't apply it."""
+        with BearDB(self.db_path) as db:
+            try:
+                return operation(db)
+            except ops.BearWriteError:
+                return None
 
     @work(thread=True)
     def _create_note(self, text: str) -> None:
         head, _, body = text.partition("\n")
         title = head.lstrip("# ").strip() or "Untitled"
-        db = BearDB(self.db_path)
-        try:
-            created = ops.create_note(db, title, body.strip() or None)
-            if created is not None:
-                self.notes.insert(0, created)
-                self.call_from_thread(self._run_filter, self.search_query)
-                self.call_from_thread(self.notify, f"Created {created.title!r}")
-                self._refresh_note(created.id)
-            else:
-                self.call_from_thread(self.notify, "Create failed - is Bear able to run?", severity="error")
-        finally:
-            db.close()
+        created = self._attempt(lambda db: ops.create_note(db, title, body.strip() or None))
+        if created is not None:
+            self.notes.insert(0, created)
+            self.call_from_thread(self._run_filter, self.search_query)
+            self.call_from_thread(self.notify, f"Created {created.title!r}")
+            self._refresh_note(created.id)
+        else:
+            self.call_from_thread(self.notify, "Create failed - is Bear able to run?", severity="error")
 
     @work(thread=True)
     def _tag_note(self, note: Note, tag: str, add: bool) -> None:
-        db = BearDB(self.db_path)
-        try:
-            if add:
-                fresh = ops.add_tag(db, note, tag)
-            else:
-                try:
-                    fresh = ops.remove_tag(db, note, tag)
-                except LookupError:
-                    self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
-                    return
-        finally:
-            db.close()
+        if add:
+            fresh = self._attempt(lambda db: ops.add_tag(db, note, tag))
+        else:
+            try:
+                fresh = self._attempt(lambda db: ops.remove_tag(db, note, tag))
+            except ops.TagMarkerNotFound:
+                self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
+                return
         message = f"Tagged with {tag!r}" if add else f"Removed tag {tag!r}"
         self._after_write(note.id, fresh, message, "Tag" if add else "Untag", edit_after=True)
 
@@ -802,11 +798,7 @@ class BearUI(App):
 
     @work(thread=True)
     def _file_away_worker(self, note: Note, operation: str) -> None:
-        db = BearDB(self.db_path)
-        try:
-            fresh = ops.trash(db, note) if operation == "trash" else ops.archive(db, note)
-        finally:
-            db.close()
+        fresh = self._attempt(lambda db: ops.trash(db, note) if operation == "trash" else ops.archive(db, note))
         if fresh is not None:
             # Selection moves to the note that takes the removed one's place.
             index = next((i for i, n in enumerate(self.shown) if n.id == note.id), None)

@@ -116,7 +116,7 @@ def test_tag_modal_typing_does_not_filter_notes():
 def test_secret_indicator(populated):
     populated.add_note("SEC00000-0000-0000-0000-000000000009", "Keys", text="# Keys\nkey AKIAIOSFODNN7EXAMPLE\n")
     db = populated.open()
-    notes = db.list_notes(limit=None, with_text=True)
+    notes = db.list_notes(limit=None)
 
     async def probe():
         app = BearUI(notes, db_path=populated.path)
@@ -138,7 +138,7 @@ def test_secret_indicator(populated):
 
 def test_rehydrate_picks_up_new_notes(populated):
     db = populated.open()
-    notes = db.list_notes(limit=None, with_text=True)
+    notes = db.list_notes(limit=None)
 
     async def probe():
         app = BearUI(notes, db_path=populated.path)
@@ -157,7 +157,7 @@ def test_rehydrate_picks_up_new_notes(populated):
 
 def test_refresh_note_updates_single_entry(populated):
     db = populated.open()
-    notes = db.list_notes(limit=None, with_text=True)
+    notes = db.list_notes(limit=None)
 
     async def probe():
         app = BearUI(notes, db_path=populated.path)
@@ -179,7 +179,7 @@ def test_refresh_note_updates_single_entry(populated):
 
 def test_encrypted_note_preview_message(populated):
     db = populated.open()
-    notes = db.list_notes(limit=None, with_text=True)
+    notes = db.list_notes(limit=None)
     app = BearUI(notes)
     vault = next(n for n in notes if n.title == "Vault")
     preview = str(app._preview(vault))
@@ -228,7 +228,7 @@ def test_removal_selects_neighbour():
 
 def test_view_switching(populated):
     db = populated.open()
-    notes = db.list_notes(limit=None, with_text=True)
+    notes = db.list_notes(limit=None)
 
     async def probe():
         app = BearUI(notes, db_path=populated.path)

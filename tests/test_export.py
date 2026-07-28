@@ -58,7 +58,7 @@ def test_redaction_state_participates_in_sync(bear, tmp_path):
     bear.add_note("AAAA0000-0000-0000-0000-00000000000D", "Keys", text="# Keys\nkey AKIAIOSFODNN7EXAMPLE\n")
     db = bear.open()
     dest = tmp_path / "out"
-    notes = db.list_notes(limit=None, include_archived=True, with_text=True)
+    notes = db.list_notes(limit=None, include_archived=True)
     redactions = redaction_map(scan_notes(notes))
 
     export_notes(db, dest, redactions=redactions)

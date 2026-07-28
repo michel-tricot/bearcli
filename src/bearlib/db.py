@@ -6,7 +6,9 @@ import re
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 from pathlib import Path
+from types import TracebackType
 
 DEFAULT_DB_PATH = (
     Path.home() / "Library/Group Containers/9K33E3U3T4.net.shinyfrog.bear" / "Application Data/database.sqlite"
@@ -26,6 +28,15 @@ def datetime_to_core_data(value: datetime) -> float:
     if value.tzinfo is None:
         value = value.astimezone()
     return (value - CORE_DATA_EPOCH).total_seconds()
+
+
+class NoteFilter(StrEnum):
+    """Restrict a listing to notes carrying exactly this status."""
+
+    PINNED = "pinned"
+    ENCRYPTED = "encrypted"
+    TRASHED = "trashed"
+    ARCHIVED = "archived"
 
 
 @dataclass
@@ -49,6 +60,7 @@ class Note:
     trashed: bool
     tags: list[str] = field(default_factory=list)
     text: str | None = None
+    """The full markdown content; None if and only if the note is encrypted."""
     attachments: list[Attachment] = field(default_factory=list)
 
 
@@ -101,6 +113,14 @@ class BearDB:
 
     def close(self) -> None:
         self.conn.close()
+
+    def __enter__(self) -> BearDB:
+        return self
+
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None
+    ) -> None:
+        self.close()
 
     def _detect_tags_join(self) -> tuple[str, str, str]:
         """Find the note<->tag join table; its numeric prefixes vary by Bear version.
@@ -203,28 +223,33 @@ class BearDB:
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
-        only: str | None = None,
+        only: NoteFilter | str | None = None,
         include_trashed: bool = False,
         include_archived: bool = False,
-        with_text: bool = False,
     ) -> list[Note]:
+        """Notes, most recently modified first.
+
+        Trashed and archived notes are excluded unless included explicitly or
+        selected via `only`; permanently-deleted rows never appear.
+        """
+        only = NoteFilter(only) if only is not None else None
         table, note_col, tag_col = self._tags_join
         # Deleted-pending-sync rows linger in the table; never show them.
         where = ["n.ZPERMANENTLYDELETED = 0"]
         params: list[object] = []
 
-        if only == "pinned":
+        if only is NoteFilter.PINNED:
             where.append("n.ZPINNED = 1")
-        elif only == "encrypted":
+        elif only is NoteFilter.ENCRYPTED:
             where.append("n.ZENCRYPTED = 1")
 
-        if only == "trashed":
+        if only is NoteFilter.TRASHED:
             where.append("n.ZTRASHED = 1")
         elif not include_trashed:
             where.append("n.ZTRASHED = 0")
-        if only == "archived":
+        if only is NoteFilter.ARCHIVED:
             where.append("n.ZARCHIVED = 1")
-        elif not include_archived and only != "trashed":
+        elif not include_archived and only is not NoteFilter.TRASHED:
             # A note trashed from the archive keeps both flags; Bear shows it in
             # the trash, so --only trashed must not exclude archived notes.
             where.append("n.ZARCHIVED = 0")
@@ -252,10 +277,9 @@ class BearDB:
             where.append("n.ZMODIFICATIONDATE < ?")
             params.append(datetime_to_core_data(modified_before))
 
-        text_col = ", n.ZTEXT" if with_text else ""
-        query = f"""
+        query = """
             SELECT n.Z_PK, n.ZUNIQUEIDENTIFIER, n.ZTITLE, n.ZCREATIONDATE,
-                   n.ZMODIFICATIONDATE, n.ZPINNED, n.ZENCRYPTED, n.ZARCHIVED, n.ZTRASHED{text_col}
+                   n.ZMODIFICATIONDATE, n.ZPINNED, n.ZENCRYPTED, n.ZARCHIVED, n.ZTRASHED, n.ZTEXT
             FROM ZSFNOTE n
         """
         if where:
@@ -265,10 +289,7 @@ class BearDB:
             query += " LIMIT ?"
             params.append(limit)
 
-        return [
-            self._note_from_row(row, text=row["ZTEXT"] if with_text else None)
-            for row in self.conn.execute(query, params)
-        ]
+        return [self._note_from_row(row, text=row["ZTEXT"]) for row in self.conn.execute(query, params)]
 
     def get_note(self, note_id: str) -> Note | None:
         """Fetch a note by id; a unique prefix (>= 4 chars) works like a full id."""

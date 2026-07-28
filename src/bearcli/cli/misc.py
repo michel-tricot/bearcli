@@ -30,7 +30,7 @@ def stats(
     """Show statistics about the note library."""
     db = _open_db(db_path)
     try:
-        notes = db.list_notes(limit=None, include_trashed=True, include_archived=True, with_text=True)
+        notes = db.list_notes(limit=None, include_trashed=True, include_archived=True)
         tag_counts = db.list_tags()
         attachment_count, attachment_bytes = db.attachment_stats()
     finally:

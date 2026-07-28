@@ -13,7 +13,7 @@ import typer
 from rich.console import Console
 
 from bearlib import actions
-from bearlib.db import AmbiguousNoteId, BearDB, Note, note_metadata
+from bearlib.db import AmbiguousNoteId, BearDB, Note, NoteFilter, note_metadata
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
 
@@ -34,11 +34,7 @@ class OutputFormat(StrEnum):
     text = "text"
 
 
-class OnlyFilter(StrEnum):
-    pinned = "pinned"
-    encrypted = "encrypted"
-    trashed = "trashed"
-    archived = "archived"
+OnlyFilter = NoteFilter  # typer choices come straight from the library enum
 
 
 def _note_to_dict(note: Note, with_text: bool = False) -> dict:

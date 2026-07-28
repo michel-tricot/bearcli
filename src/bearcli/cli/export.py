@@ -81,7 +81,7 @@ def export(
         redactions: dict[str, dict[str, str]] | None = None
         if not allow_secrets:
             with console.status("Scanning notes for secrets…", spinner="dots"):
-                candidates = db.list_notes(limit=None, include_archived=True, with_text=True)
+                candidates = db.list_notes(limit=None, include_archived=True)
                 findings = scan_notes(candidates)
             if findings and not redact_secrets:
                 _report_secrets(findings)

@@ -75,6 +75,12 @@ secrets) with no UI dependencies; `bearcli` is the CLI/TUI product on top.
 Both ship from the same distribution (`tool.uv.build-backend.module-name`
 lists both). Dependency rule: bearlib never imports from bearcli.
 
+bearlib API conventions: enums over magic strings (`NoteFilter`,
+`TextMode`), writes raise (`BearWriteError`, `TagMarkerNotFound`) instead of
+returning None, `Note.text` is None iff the note is encrypted (text is
+always loaded), `BearDB` is a context manager, and both packages ship
+`py.typed`. API reference: `docs/BEARLIB.md`.
+
 ## CLI design (`cli.py`)
 
 - Commands are grouped gh-style into `note` and `tag` sub-apps (plus

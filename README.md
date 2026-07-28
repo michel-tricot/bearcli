@@ -166,15 +166,20 @@ Bear's database, verified writes through Bear's API, search, and secret
 detection - with no CLI or TUI dependencies:
 
 ```python
-from bearlib import BearDB
-from bearlib import ops
+from bearlib import BearDB, BearWriteError, ops
 
-db = BearDB()  # read-only; Bear does not need to be running
-for note in db.list_notes(tag="work", limit=10):
-    print(note.title, note.tags)
+with BearDB() as db:  # read-only; Bear does not need to be running
+    for note in db.list_notes(tag="work", limit=10):
+        print(note.title, note.tags)
 
-ops.add_tag(db, db.get_note("C44D09DC"), "from-python")  # verified write
+    try:
+        ops.add_tag(db, db.get_note("C44D09DC"), "from-python")
+    except BearWriteError:
+        print("Bear did not apply the change")
 ```
+
+Full reference: [docs/BEARLIB.md](docs/BEARLIB.md). The package ships typed
+(`py.typed`).
 
 ## Development
 
