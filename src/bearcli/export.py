@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -26,9 +27,24 @@ class ExportResult:
     index_skipped: bool = False
 
 
-def slugify(title: str, max_length: int = 80) -> str:
+def slugify(title: str, max_length: int = 60) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
     return slug[:max_length].rstrip("-") or "untitled"
+
+
+def _dirnames(notes: list[Note]) -> dict[str, str]:
+    """Map note id -> directory name: <slug>-<first 8 id chars>.
+
+    The id fragment makes names unique without title-dedup suffixes. In the
+    astronomically rare case two notes share both slug and id prefix, those
+    notes use their full id so the outcome never depends on iteration order.
+    """
+    short = {n.id: f"{slugify(n.title)}-{n.id[:8].lower()}" for n in notes}
+    counts = Counter(short.values())
+    return {
+        n.id: short[n.id] if counts[short[n.id]] == 1 else f"{slugify(n.title)}-{n.id.lower()}"
+        for n in notes
+    }
 
 
 def _frontmatter(note: Note) -> str:
@@ -153,10 +169,8 @@ def export_notes(
 
     report("Reading notes from Bear…")
     summaries = db.list_notes(limit=None, include_archived=True)
-    # Stable ordering so duplicate-title slugs get the same -2/-3 suffixes each run.
-    summaries.sort(key=lambda n: (n.title.lower(), n.id))
+    dirnames = _dirnames(summaries)
 
-    used_slugs: set[str] = set()
     entries: list[dict] = []
 
     def add_entry(note: Note, path: str | None, attachments: bool) -> None:
@@ -182,13 +196,7 @@ def export_notes(
             add_entry(summary, None, False)
             continue
 
-        slug = base_slug = slugify(summary.title)
-        suffix = 2
-        while slug in used_slugs:
-            slug = f"{base_slug}-{suffix}"
-            suffix += 1
-        used_slugs.add(slug)
-
+        slug = dirnames[summary.id]
         note_dir = dest / slug
         note_path = note_dir / NOTE_FILENAME
 
@@ -222,8 +230,9 @@ def export_notes(
 
     # Remove directories for notes that were deleted in Bear or whose slug changed.
     report("Cleaning up removed notes…")
+    current_dirs = set(dirnames.values())
     for stale in dest.iterdir():
-        if not stale.is_dir() or stale.name in used_slugs:
+        if not stale.is_dir() or stale.name in current_dirs:
             continue
         if not _parse_frontmatter(stale / NOTE_FILENAME).get("id"):
             continue
