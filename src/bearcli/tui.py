@@ -141,6 +141,8 @@ class BearUI(App):
         self.editing: Note | None = None
         self.creating = False
         self.secret_counts: dict[str, int] = {}
+        self._select_id: str | None = None
+        self._pending_edit_id: str | None = None
 
     # ── layout ────────────────────────────────────────────────────────────
 
@@ -283,10 +285,18 @@ class BearUI(App):
         result_list.clear_options()
         result_list.add_options(options)
         result_list.border_title = f"{len(self.shown)} / {len(self.notes)} notes"
+        select_id, self._select_id = self._select_id, None
+        index = next((i for i, n in enumerate(self.shown) if n.id == select_id), None) if select_id else None
         if self.shown:
-            result_list.highlighted = 0
+            result_list.highlighted = index if index is not None else 0
         else:
             self.query_one("#preview-pane", Static).update("")
+        pending, self._pending_edit_id = self._pending_edit_id, None
+        if pending and not self.edit_mode:
+            note = next((n for n in self.shown if n.id == pending), None)
+            if note and note.text is not None:
+                self.editing = note
+                self._enter_editor(note.title, note.text)
 
     def _selected(self) -> Note | None:
         results = self.query_one("#results", OptionList)
@@ -459,14 +469,22 @@ class BearUI(App):
     def _tag_note(self, note: Note, tag: str, add: bool) -> None:
         if add:
             actions.add_text(note.id, tag_marker(tag), mode="append")
-            self._finish_write(note.id, lambda db: self._has_tag(db, note.id, tag), f"Tagged with {tag!r}", "Tag")
+            self._finish_write(
+                note.id, lambda db: self._has_tag(db, note.id, tag), f"Tagged with {tag!r}", "Tag", edit_after=True
+            )
         else:
             new_text = remove_tag_marker(note.text or "", tag)
             if new_text is None:
                 self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
                 return
             actions.add_text(note.id, new_text, mode="replace_all")
-            self._finish_write(note.id, lambda db: not self._has_tag(db, note.id, tag), f"Removed tag {tag!r}", "Untag")
+            self._finish_write(
+                note.id,
+                lambda db: not self._has_tag(db, note.id, tag),
+                f"Removed tag {tag!r}",
+                "Untag",
+                edit_after=True,
+            )
 
     def _file_away(self, operation: str) -> None:
         if note := self._selected():
@@ -510,9 +528,12 @@ class BearUI(App):
         finally:
             db.close()
 
-    def _finish_write(self, note_id: str, predicate, ok_message: str, operation: str) -> None:
+    def _finish_write(self, note_id: str, predicate, ok_message: str, operation: str, edit_after: bool = False) -> None:
         if self._wait(predicate):
             self.call_from_thread(self.notify, ok_message)
+            self._select_id = note_id
+            if edit_after:
+                self._pending_edit_id = note_id
             self._refresh_note(note_id)
         else:
             self.call_from_thread(self.notify, f"{operation} failed - is Bear able to run?", severity="error")

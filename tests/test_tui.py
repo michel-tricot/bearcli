@@ -184,3 +184,21 @@ def test_encrypted_note_preview_message(populated):
     vault = next(n for n in notes if n.title == "Vault")
     preview = str(app._preview(vault))
     assert "encrypted" in preview.lower() and "directly in Bear" in preview
+
+
+def test_pending_edit_selects_and_opens_editor():
+    async def probe():
+        app = BearUI(list(NOTES))
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app._select_id = "N2"
+            app._pending_edit_id = "N2"
+            app._run_filter(app.search_query)
+            await pilot.pause(0.5)
+            results = app.query_one("#results", OptionList)
+            assert results.highlighted == 1  # N2 selected
+            editor = app.query_one("#editor", TextArea)
+            assert str(editor.styles.display) == "block"
+            assert app.editing is not None and app.editing.id == "N2"
+
+    run(probe())
