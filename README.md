@@ -49,4 +49,7 @@ Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`).
 
 The database path defaults to Bear's standard location and can be overridden with
 `--db` or the `BEAR_DB_PATH` environment variable. Encrypted notes are listed
-(marked 🔒) but their content cannot be read.
+but their content cannot be read.
+
+How it works: [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md). Contributor/agent
+guidelines: [AGENTS.md](AGENTS.md).
