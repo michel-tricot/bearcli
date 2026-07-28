@@ -44,7 +44,7 @@ def _dirnames(notes: list[Note]) -> dict[str, str]:
     return {n.id: short[n.id] if counts[short[n.id]] == 1 else f"{slugify(n.title)}-{n.id.lower()}" for n in notes}
 
 
-def _frontmatter(note: Note) -> str:
+def _frontmatter(note: Note, redacted: bool = False) -> str:
     lines = [
         "---",
         f"id: {note.id}",
@@ -55,8 +55,17 @@ def _frontmatter(note: Note) -> str:
         lines.append(f"created: {note.created.isoformat()}")
     if note.modified:
         lines.append(f"modified: {note.modified.isoformat()}")
+    if redacted:
+        lines.append("redacted: true")
     lines.append("---")
     return "\n".join(lines)
+
+
+def _apply_redactions(text: str, secrets: dict[str, str]) -> str:
+    # Longest first, in case one detected value contains another.
+    for value in sorted(secrets, key=len, reverse=True):
+        text = text.replace(value, f"[redacted: {secrets[value]}]")
+    return text
 
 
 def _parse_frontmatter(path: Path) -> dict[str, str]:
@@ -149,6 +158,7 @@ def export_notes(
     dest: Path,
     sync: bool = False,
     progress: Callable[[str], None] | None = None,
+    redactions: dict[str, dict[str, str]] | None = None,
 ) -> ExportResult:
     """Write every non-trashed note as dest/<slug>/README.md plus attachments/.
 
@@ -197,10 +207,15 @@ def export_notes(
         note_dir = dest / slug
         note_path = note_dir / NOTE_FILENAME
 
+        note_secrets = (redactions or {}).get(summary.id, {})
         modified_iso = summary.modified.isoformat() if summary.modified else ""
         if sync and note_path.exists():
             existing = _parse_frontmatter(note_path)
-            if existing.get("id") == summary.id and existing.get("modified") == modified_iso:
+            # A change in redaction state must rewrite the file even though the
+            # note itself is unchanged — otherwise a previously exported secret
+            # would survive a later --redact-secrets run (and vice versa).
+            same_redaction = (existing.get("redacted") == "true") == bool(note_secrets)
+            if existing.get("id") == summary.id and existing.get("modified") == modified_iso and same_redaction:
                 result.unchanged += 1
                 add_entry(summary, f"{slug}/", (note_dir / ATTACHMENTS_DIRNAME).exists())
                 continue
@@ -211,8 +226,11 @@ def export_notes(
             add_entry(summary, None, False)
             continue
 
+        text = _rewrite_refs(note)
+        if note_secrets:
+            text = _apply_redactions(text, note_secrets)
         note_dir.mkdir(exist_ok=True)
-        note_path.write_text(f"{_frontmatter(note)}\n{_rewrite_refs(note)}\n")
+        note_path.write_text(f"{_frontmatter(note, redacted=bool(note_secrets))}\n{text}\n")
 
         attach_dir = note_dir / ATTACHMENTS_DIRNAME
         if attach_dir.exists():

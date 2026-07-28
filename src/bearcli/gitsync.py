@@ -49,6 +49,7 @@ def export_and_push(
     dest: Path,
     sync: bool = True,
     progress: Callable[[str], None] | None = None,
+    redactions: dict[str, dict[str, str]] | None = None,
     attempts: int = 3,
 ) -> tuple[ExportResult, str]:
     def report(message: str) -> None:
@@ -86,7 +87,7 @@ def export_and_push(
                 # a full export re-asserts every note, not just changed ones.
                 full = True
 
-        result = export_notes(db, dest, sync=not full, progress=progress)
+        result = export_notes(db, dest, sync=not full, progress=progress, redactions=redactions)
 
         report("Committing…")
         parts = [f"{result.written} written"]

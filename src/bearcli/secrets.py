@@ -61,6 +61,7 @@ class SecretFinding:
     rule: str
     line: int
     excerpt: str
+    secret: str  # raw value, for redaction only — never print this
 
 
 def _redact(value: str) -> str:
@@ -75,7 +76,9 @@ def scan_notes(notes: list[Note]) -> list[SecretFinding]:
         seen: set[tuple[int, str]] = set()
         for lineno, line in enumerate((note.text or "").splitlines(), start=1):
             for plugin in plugins:
-                for secret in plugin.analyze_line(filename="note.txt", line=line, line_number=lineno):
+                # The yaml filetype hint makes KeywordDetector accept unquoted
+                # `password: value` assignments, which is how notes write them.
+                for secret in plugin.analyze_line(filename="note.yaml", line=line, line_number=lineno):
                     value = secret.secret_value or ""
                     if _is_false_positive(value, line) or (lineno, value) in seen:
                         continue
@@ -87,6 +90,16 @@ def scan_notes(notes: list[Note]) -> list[SecretFinding]:
                             rule=secret.type,
                             line=lineno,
                             excerpt=_redact(value),
+                            secret=value,
                         )
                     )
     return findings
+
+
+def redaction_map(findings: list[SecretFinding]) -> dict[str, dict[str, str]]:
+    """Per note id, the secret values to replace and the rule that found them."""
+    by_note: dict[str, dict[str, str]] = {}
+    for finding in findings:
+        if finding.secret:
+            by_note.setdefault(finding.note_id, {}).setdefault(finding.secret, finding.rule)
+    return by_note
