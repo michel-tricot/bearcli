@@ -78,7 +78,9 @@
   .term pre {
     padding: 20px 22px;
     overflow-x: auto;
-    font: 13px/1.75 var(--mono);
+    /* System mono, not the webfont: Google Fonts' latin subset lacks the
+       box-drawing glyphs, and mixed-font fallback breaks column alignment. */
+    font: 13px/1.75 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   }
   .p  { color: var(--accent); }        /* prompt */
   .c  { color: var(--dim); }           /* comment / borders */
