@@ -125,7 +125,8 @@ class BearUI(App):
     BINDINGS = [
         Binding("escape", "back_or_quit", "Quit"),
         Binding("/", "focus_search", "Search"),
-        Binding("enter", "edit_selected", "Edit", show=True),
+        Binding("enter", "edit_selected", "Edit", show=True, key_display="enter/e"),
+        Binding("e", "edit_selected", "Edit", show=False),
         Binding("n", "new_note", "New", key_display="n/c"),
         Binding("c", "new_note", "New", show=False),
         Binding("t", "add_tag", "Tag"),
