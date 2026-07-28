@@ -44,7 +44,7 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
 - `src/bearcli/secrets.py` — detect-secrets-based scanning; export blocks on
   findings before writing anything (`--allow-secrets` overrides). Redact
   matches in output; never print the secret itself.
-- `src/bearcli/tui.py` — the interactive `browse` Textual app.
+- `src/bearcli/tui.py` — the interactive `ui` Textual app (search, edit, create, tag; writes via actions.py, verified like the CLI).
 - `src/bearcli/gitsync.py` — `export --push`: commit/merge/push convergence
   loop treating the destination repo as a one-way mirror (Bear wins in HEAD,
   overwritten edits stay in history, never force-pushes).

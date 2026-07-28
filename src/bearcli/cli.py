@@ -917,12 +917,12 @@ def stats(
 
 
 @app.command()
-def browse(
+def ui(
     fuzzy: Annotated[bool, typer.Option("--fuzzy", help="Typo-tolerant ranked filtering.")] = False,
     tag_filter: Annotated[str | None, typer.Option("--tag", "-t", help="Restrict to notes with this tag.")] = None,
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
-    """Browse notes interactively: type to filter, Enter opens the note in Bear."""
+    """Bear in the terminal: search, edit, create, tag, and organize notes."""
     from bearcli.tui import browse as run_browser
 
     db = _open_db(db_path)
@@ -930,4 +930,4 @@ def browse(
         notes = db.list_notes(limit=None, tag=tag_filter, with_text=True)
     finally:
         db.close()
-    run_browser(notes, fuzzy=fuzzy)
+    run_browser(notes, fuzzy=fuzzy, db_path=db_path)

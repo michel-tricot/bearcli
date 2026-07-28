@@ -56,7 +56,7 @@ bearcli get C44D09DC-... --meta              # with YAML-style frontmatter
 bearcli get C44D09DC-... -r                  # rewrite attachment refs to absolute paths
 bearcli get C44D09DC-... --redact-secrets    # secrets replaced by placeholders
 bearcli open C44D09DC-...                    # open in the Bear app
-bearcli browse                               # interactive: type to filter, Enter opens
+bearcli ui                                   # Bear in the terminal: search, edit, tag
 bearcli stats                                # counts, words, top tags, notes per year
 ```
 
