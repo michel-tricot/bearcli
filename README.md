@@ -164,6 +164,25 @@ bearcli skills show bear-notes       # print the skill
 
 Reinstall after upgrading so agents always match the installed CLI.
 
+## MCP server
+
+`bearcli mcp` serves your notes to AI apps over the Model Context Protocol
+(stdio): list, read, search, create, edit, tag, archive/trash, and
+open-in-Bear, with the same verified writes as the CLI. Note content is
+secret-redacted by default before it reaches the model.
+
+For Claude Desktop, add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "bear": { "command": "bearcli", "args": ["mcp"] }
+  }
+}
+```
+
+(Use the full path from `which bearcli` if the app doesn't see your PATH.)
+
 ## Use as a library
 
 The fundamentals ship as their own package on PyPI, `bearkit` - reading

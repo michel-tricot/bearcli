@@ -92,6 +92,17 @@ def stats(
     console.print(year_table)
 
 
+@app.command(rich_help_panel="Agents")
+def mcp(
+    db_path: DbPathOption = DEFAULT_DB_PATH,
+) -> None:
+    """Serve notes to AI apps (Claude Desktop, etc.) over MCP. Stdio only."""
+    from bearcli.mcpserver import run as run_server
+
+    _open_bear(db_path).close()  # fail fast with a clear message if the db is missing
+    run_server(db_path)
+
+
 @app.command(rich_help_panel="Library")
 def ui(
     fuzzy: Annotated[bool, typer.Option("--fuzzy", help="Typo-tolerant ranked filtering.")] = False,

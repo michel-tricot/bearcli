@@ -68,6 +68,9 @@ tag, publishes both, and updates the Homebrew tap formula
 - `tui.py` — the interactive `ui` Textual app (search, edit, create, tag;
   verified writes through a per-worker `Bear` facade — SQLite connections
   don't cross threads).
+- `mcpserver.py` — the `mcp` command: FastMCP server over stdio (only) for
+  AI apps like Claude Desktop; note text is secret-redacted by default,
+  every tool opens a fresh `Bear`.
 - `export.py` — export to per-note directories with index generation.
   UI-free; reports progress through an optional callback. Export blocks on
   secret findings before writing anything (`--allow-secrets` overrides).

@@ -109,6 +109,18 @@ in the TUI, `search_notes` on filtered views), and the TUI's db-free
 open-in-Bear calls `actions.open_note` directly rather than opening a
 connection just to fire a URL.
 
+## MCP server
+
+`bearcli mcp` serves the library over the Model Context Protocol using
+FastMCP, stdio transport only - no SSE/HTTP: the server reads the local
+Bear database, so a network transport would only invite remote access to
+it. Tools mirror the facade (list/get/search/tags, verified writes,
+open-in-Bear). Two deliberate choices: every tool call opens a fresh
+`Bear` so long-lived Claude Desktop sessions always see current notes, and
+`get_note` redacts secrets by default - MCP tool results are sent to the
+model provider, so raw credentials only travel when the user explicitly
+passes redact_secrets=false.
+
 ## CLI design (`cli.py`)
 
 - Commands are grouped gh-style into `note` and `tag` sub-apps (plus
