@@ -108,6 +108,7 @@ class BrowseApp(App):
 
     BINDINGS = [
         Binding("escape", "back_or_quit", "Quit"),
+        Binding("/", "focus_search", "Search"),
         Binding("enter", "edit_selected", "Edit", show=True),
         Binding("n,c", "new_note", "New"),
         Binding("t", "add_tag", "Tag"),
@@ -153,6 +154,7 @@ class BrowseApp(App):
             "open_in_bear",
             "archive_note",
             "trash_note",
+            "focus_search",
         }
         if self.edit_mode and action in browse_only:
             return False
@@ -164,6 +166,12 @@ class BrowseApp(App):
 
     def on_mount(self) -> None:
         self._show_results("", [SearchResult(note=n, snippet="") for n in self.notes])
+        self.query_one("#query", Input).focus()
+
+    def action_focus_search(self) -> None:
+        query = self.query_one("#query", Input)
+        query.focus()
+        query.selection = query.selection.__class__(0, len(query.value))
 
     def on_input_changed(self, event: Input.Changed) -> None:
         self._run_filter(event.value)
