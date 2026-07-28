@@ -98,6 +98,12 @@ browsable tree.
 ```sh
 bearcli export ~/bear-backup
 bearcli export ~/bear-backup --sync          # only rewrite notes that changed
+
+# Mirror to a git repository (clone it first; use a *private* repo — these are
+# your notes). Bear is the source of truth: remote or manual edits are kept in
+# git history but overwritten in HEAD. Never force-pushes, never gets stuck.
+git clone git@github.com:you/bear-notes.git ~/bear-notes
+bearcli export ~/bear-notes --sync --push
 ```
 
 ## Scripting

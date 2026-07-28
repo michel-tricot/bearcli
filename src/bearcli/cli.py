@@ -22,6 +22,7 @@ from rich.table import Table
 from bearcli import actions
 from bearcli.db import DEFAULT_DB_PATH, BearDB, Note
 from bearcli.export import export_notes
+from bearcli.gitsync import GitError, export_and_push
 from bearcli.search import naive_search, search_notes
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
@@ -298,17 +299,35 @@ def export(
             help="Only rewrite notes that changed since the last export instead of everything.",
         ),
     ] = False,
+    push: Annotated[
+        bool,
+        typer.Option(
+            "--push",
+            help="Treat DEST as a git clone: commit the export and push. Bear is the source of "
+            "truth — remote or manual edits are kept in history but overwritten in HEAD.",
+        ),
+    ] = False,
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Export all notes as markdown files with frontmatter and attachments."""
     db = _open_db(db_path)
     try:
         with console.status("Exporting…", spinner="dots") as status:
-            result = export_notes(db, dest, sync=sync, progress=lambda msg: status.update(rich_escape(msg)))
+            update = lambda msg: status.update(rich_escape(msg))  # noqa: E731
+            if push:
+                try:
+                    result, outcome = export_and_push(db, dest, sync=sync, progress=update)
+                except GitError as exc:
+                    console.print(f"[red]Error:[/red] {exc}")
+                    raise typer.Exit(1) from None
+            else:
+                result = export_notes(db, dest, sync=sync, progress=update)
     finally:
         db.close()
 
     parts = [f"{result.written} written"]
+    if push:
+        parts.append(outcome)
     if sync:
         parts.append(f"{result.unchanged} unchanged")
     if result.removed:

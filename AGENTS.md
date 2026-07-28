@@ -38,6 +38,9 @@ pass `--db` or set `BEAR_DB_PATH` to use a copy.
   No CLI or output concerns.
 - `src/bearcli/export.py` — export to per-note directories with index
   generation. UI-free; reports progress through an optional callback.
+- `src/bearcli/gitsync.py` — `export --push`: commit/merge/push convergence
+  loop treating the destination repo as a one-way mirror (Bear wins in HEAD,
+  overwritten edits stay in history, never force-pushes).
 
 See `docs/IMPLEMENTATION.md` for Bear's schema details and export design.
 

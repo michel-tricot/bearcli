@@ -132,6 +132,25 @@ Decisions and their reasons:
   CLI renders it as a Rich status spinner (escaping titles so `[...]` isn't
   parsed as markup).
 
+## Git mirroring (`gitsync.py`)
+
+`export --push` treats the destination as a one-way mirror clone: Bear is the
+source of truth and HEAD always converges to Bear's state, without manual git
+intervention. The algorithm (bounded retries around the whole sequence):
+
+1. Commit anything dirty ("local changes") — merges start clean, nothing lost.
+2. Fetch; if behind, `merge --ff-only`, else `merge -X ours` (conflicts
+   resolve to local automatically), else abort + `reset --hard origin`.
+3. If anything was pulled, run a **full** export (not sync) so Bear's state is
+   re-asserted over pulled edits — the sync frontmatter check can't see body
+   edits, so sync mode would let remote content changes linger.
+4. Commit, push (`-u`); a rejected push (race) loops back to the fetch.
+
+Nothing is ever force-pushed, and overwritten edits remain reachable in
+history. `git add -A` stages everything in the repo, so with `--push` the
+directory is fully bearcli-managed — documented as requiring a dedicated
+(private!) repo.
+
 ## Fuzzy search (`search.py`)
 
 Default mode is a case-insensitive substring match over titles, tags, and
