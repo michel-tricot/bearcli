@@ -25,7 +25,6 @@ class ExportResult:
     removed: int = 0
     skipped_encrypted: int = 0
     index_updated: bool = False
-    index_skipped: bool = False
 
 
 def slugify(title: str, max_length: int = 60) -> str:
@@ -232,10 +231,7 @@ def export_notes(
 
     report("Writing index…")
     index_path = dest / "README.md"
-    if index_path.exists() and _parse_frontmatter(index_path).get("generated-by") != "bearcli":
-        result.index_skipped = True
-    else:
-        result.index_updated = _write_if_changed(index_path, _index_markdown(entries))
+    result.index_updated = _write_if_changed(index_path, _index_markdown(entries))
     result.index_updated |= _write_if_changed(
         dest / "index.json",
         json.dumps(sorted(entries, key=lambda e: e["title"].lower()), indent=2, ensure_ascii=False) + "\n",

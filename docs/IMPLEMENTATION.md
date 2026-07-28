@@ -123,9 +123,8 @@ Decisions and their reasons:
   (year of modification, descending), rows linking to note *folders* (GitHub
   auto-renders each folder's README). Encrypted notes appear unlinked (they
   export no folder). It is rewritten only when content changed (no churn on
-  no-op syncs) and only if it carries `generated-by: bearcli` frontmatter (or
-  doesn't exist) — a hand-written README is preserved with a warning.
-  `index.json` carries the same catalog for scripts.
+  no-op syncs); the destination root `README.md` is always bearcli's to
+  overwrite. `index.json` carries the same catalog for scripts.
 - **Encrypted notes** are counted and indexed but never exported (`ZTEXT` is
   NULL; content only exists in `ZENCRYPTEDDATA`).
 - Export is UI-free: progress is reported through an optional callback, and the

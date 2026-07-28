@@ -59,9 +59,9 @@ See `docs/IMPLEMENTATION.md` for Bear's schema details and export design.
   `BearDB._detect_tags_join`.
 - Always filter `ZPERMANENTLYDELETED = 0` when listing notes or attachments.
 - Export must only modify files/directories it owns: note directories are
-  identified by a `README.md` whose frontmatter has an `id:` field, the root
-  index by `generated-by: bearcli` frontmatter. Never delete or overwrite
-  anything else in the destination.
+  identified by a `README.md` whose frontmatter has an `id:` field; the root
+  `README.md`/`index.json` are always bearcli's to overwrite. Never delete or
+  overwrite anything else in the destination.
 - Encrypted notes (`ZENCRYPTED = 1`) have no readable text; surface them in
   listings/indexes but never fail trying to read their content.
 
