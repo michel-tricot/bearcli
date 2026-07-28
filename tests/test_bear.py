@@ -71,6 +71,15 @@ def test_facade_search(populated):
     assert fuzzy and fuzzy[0].note.title == "Groceries" and fuzzy[0].score is not None
 
 
+def test_facade_search_multiple_tags(populated):
+    populated.add_note("TAGA0000-0000-0000-0000-000000000001", "Sub note", text="# Sub note\n", tags=("work/ideas",))
+    populated.conn.commit()
+    bear = Bear(populated.path)
+    hits = bear.search("", tag=["home", "work"])
+    assert {r.note.title for r in hits} == {"Groceries", "Project plan", "Sub note"}
+    assert not bear.search("", tag=["nope"])
+
+
 def test_facade_search_scope(populated):
     # The fixture ships "Old stuff" archived and "Gone" trashed.
     populated.conn.commit()

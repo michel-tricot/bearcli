@@ -9,6 +9,7 @@ if Bear never applies the change). The raw layers remain available as
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 from types import TracebackType
@@ -81,12 +82,26 @@ class Bear:
         query: str,
         fuzzy: bool = False,
         min_score: float = 60.0,
-        tag: str | None = None,
+        tag: str | Sequence[str] | None = None,
         include_trashed: bool = False,
         include_archived: bool = False,
     ) -> list[SearchResult]:
-        """Search titles, tags, and content; fuzzy is typo-tolerant and ranked."""
-        notes = self.list_notes(limit=None, tag=tag, include_trashed=include_trashed, include_archived=include_archived)
+        """Search titles, tags, and content; fuzzy is typo-tolerant and ranked.
+
+        `tag` scopes the search to one tag or any of several (each including
+        its nested sub-tags, e.g. "work" also covers "work/ideas").
+        """
+        single = tag if isinstance(tag, str) else None
+        notes = self.list_notes(
+            limit=None, tag=single, include_trashed=include_trashed, include_archived=include_archived
+        )
+        if tag and not isinstance(tag, str):
+            wanted = [t.lower() for t in tag]
+            notes = [
+                n
+                for n in notes
+                if any(nt == w or nt.startswith(w + "/") for nt in (t.lower() for t in n.tags) for w in wanted)
+            ]
         if fuzzy:
             return search_notes(notes, query, min_score=min_score)
         return naive_search(notes, query)
