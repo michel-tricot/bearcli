@@ -285,6 +285,9 @@ class BearUI(App):
             row.add_column(justify="right", no_wrap=True)
             row.add_column(width=2)  # spacer between badges and the scrollbar
             row.add_row(label, badge, "")
+            if has_secret:
+                # Table.style does not paint backgrounds; row_styles does.
+                row.row_styles = [SECRET_STYLE]
             options.append(Option(row, id=note.id))
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
