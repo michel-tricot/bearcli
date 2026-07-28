@@ -235,6 +235,17 @@ size around 1 MB, so attachments are limited to 500 KB raw. `rename` and the
 untag rewrite both go through `add-text&mode=replace_all` (full text including
 the heading); `replace` uses `mode=replace`, which keeps the title.
 
+## Agent skill (`skills/bear-notes`)
+
+A SKILL.md in the Agent Skills format (frontmatter description = activation
+trigger, body = instructions) teaching agents the CLI. It encodes the
+agent-relevant conventions rather than human docs: use `-f json`/`-f text`
+instead of parsing tables, ids accept unique prefixes, write commands verify
+against the database, fetch content with `--redact-secrets` before it leaves
+the machine, never `--allow-secrets` unprompted, `replace` needs confirmation,
+and untrash/unarchive don't exist. Keep it in sync when command behavior
+changes.
+
 ## Reference
 
 Prior art: [sandip-mane/bear-github-sync](https://github.com/sandip-mane/bear-github-sync)
