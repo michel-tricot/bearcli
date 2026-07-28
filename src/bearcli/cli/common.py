@@ -11,11 +11,23 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from typer.core import TyperGroup
 
 from bearkit import Bear
 from bearkit.db import AmbiguousNoteId, Note, NoteFilter
 
-app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
+
+class _GoodiesLast(TyperGroup):
+    """Help panels render in command order; sort Goodies to the end."""
+
+    def list_commands(self, ctx):
+        names = super().list_commands(ctx)
+        return sorted(names, key=lambda n: getattr(self.commands[n], "rich_help_panel", "") == "Goodies")
+
+
+app = typer.Typer(
+    cls=_GoodiesLast, help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False
+)
 
 
 def _print_version(value: bool) -> None:
