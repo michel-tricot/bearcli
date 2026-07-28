@@ -123,9 +123,14 @@ def test_secret_indicator(populated):
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause(0.8)
             assert app.secret_counts.get("SEC00000-0000-0000-0000-000000000009", 0) >= 1
-            option_texts = [
-                str(app.query_one("#results", OptionList).get_option_at_index(i).prompt) for i in range(len(notes))
-            ]
+            from rich.console import Console
+
+            console = Console(width=100)
+            option_texts = []
+            for i in range(len(notes)):
+                with console.capture() as capture:
+                    console.print(app.query_one("#results", OptionList).get_option_at_index(i).prompt)
+                option_texts.append(capture.get())
             assert any("🚨" in t and "Keys" in t for t in option_texts)
 
     run(probe())

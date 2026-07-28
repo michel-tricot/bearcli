@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from rich.table import Table as RichTable
 from rich.text import Text
 from textual import events, work
 from textual.app import App, ComposeResult
@@ -263,11 +264,16 @@ class BearUI(App):
             if note.tags:
                 label.append("  ")
                 label.append(_highlighted(" ".join(f"#{t}" for t in note.tags), query, "dim cyan"))
+            badge = Text(no_wrap=True)
             if note.encrypted:
-                label.append("  🔒", "dim")
+                badge.append(" 🔒", "dim")
             if self.secret_counts.get(note.id):
-                label.append("  🚨", "yellow")
-            options.append(Option(label, id=note.id))
+                badge.append(" 🚨 ", "on dark_red")
+            row = RichTable.grid(expand=True)
+            row.add_column(ratio=1, no_wrap=True, overflow="ellipsis")
+            row.add_column(justify="right", no_wrap=True)
+            row.add_row(label, badge)
+            options.append(Option(row, id=note.id))
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
         result_list.add_options(options)
