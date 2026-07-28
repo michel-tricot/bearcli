@@ -262,3 +262,28 @@ def test_help_overlay():
             assert not isinstance(app.screen, HelpScreen)
 
     run(probe())
+
+
+def test_async_initial_load_with_spinner(populated):
+    populated.open().close()
+
+    async def probe():
+        app = BearUI(db_path=populated.path)
+        async with app.run_test(size=(120, 40)) as pilot:
+            results = app.query_one("#results", OptionList)
+            await pilot.pause(1.0)
+            assert results.loading is False
+            assert len(app.notes) >= 3  # loaded by the worker, not the caller
+
+    run(probe())
+
+
+def test_preview_pane_focusable():
+    async def probe():
+        app = BearUI(list(NOTES))
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.press("tab")  # results -> preview scroll
+            assert app.focused is not None and app.focused.id == "preview-pane"
+
+    run(probe())

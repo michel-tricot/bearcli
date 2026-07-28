@@ -101,9 +101,5 @@ def ui(
     """Bear in the terminal: search, edit, create, tag, and organize notes."""
     from bearcli.tui import run_ui
 
-    db = _open_db(db_path)
-    try:
-        notes = db.list_notes(limit=None, tag=tag_filter, with_text=True)
-    finally:
-        db.close()
-    run_ui(notes, fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter)
+    _open_db(db_path).close()  # fail fast with a clear message if the db is missing
+    run_ui(fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter)

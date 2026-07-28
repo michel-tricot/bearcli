@@ -239,6 +239,7 @@ class BearUI(App):
     #results:focus { border: round $accent; }
     #side { width: 66%; }
     #preview-pane { height: 1fr; border: round $panel-lighten-2; padding: 0 1; }
+    #preview-pane:focus { border: round $accent; }
     #editor { height: 1fr; border: round $accent; display: none; }
     Horizontal { height: 1fr; margin: 0 1; }
     """
@@ -261,18 +262,19 @@ class BearUI(App):
         Binding("a", "archive_note", "Archive"),
         Binding("d", "trash_note", "Trash"),
         Binding("ctrl+s", "save_edit", "Save to Bear"),
-        Binding("tab", "focus_next", "Switch pane", show=False),
+        Binding("tab", "focus_next", "Switch pane"),
     ]
 
     def __init__(
         self,
-        notes: list[Note],
+        notes: list[Note] | None = None,
         fuzzy: bool = False,
         db_path: Path = DEFAULT_DB_PATH,
         tag_filter: str | None = None,
     ):
         super().__init__()
-        self.notes = notes
+        self._preloaded = notes is not None
+        self.notes = notes or []
         self.fuzzy = fuzzy
         self.db_path = db_path
         self.tag_filter = tag_filter
@@ -323,9 +325,13 @@ class BearUI(App):
     # ── searching / listing ──────────────────────────────────────────────
 
     def on_mount(self) -> None:
-        self._show_results("", [SearchResult(note=n, snippet="") for n in self.notes])
         self.query_one("#results", OptionList).focus()
-        self._scan_secrets()
+        if self._preloaded:
+            self._show_results("", [SearchResult(note=n, snippet="") for n in self.notes])
+            self._scan_secrets()
+        else:
+            self.query_one("#results", OptionList).loading = True
+            self._rehydrate()
 
     @work(exclusive=True, thread=True, group="scan")
     def _scan_secrets(self) -> None:
@@ -333,6 +339,7 @@ class BearUI(App):
 
     def _apply_secret_values(self, values: dict[str, dict[str, str]]) -> None:
         self.secret_values = values
+        self.query_one("#results", OptionList).loading = False
         self._run_filter(self.search_query)
 
     @work(thread=True, group="refresh")
@@ -581,14 +588,15 @@ class BearUI(App):
         self.view = view
         self._select_id = None
         self.notify({"notes": "Notes", "archive": "Archive", "trash": "Trash"}[view] + " view")
+        self.query_one("#results", OptionList).loading = True
         self._rehydrate()
 
     def action_help(self) -> None:
         self.push_screen(HelpScreen())
 
     def action_refresh(self) -> None:
+        self.query_one("#results", OptionList).loading = True
         self._rehydrate()
-        self.notify("Reloading from Bear…")
 
     def action_archive_note(self) -> None:
         self._file_away("archive")
@@ -691,9 +699,8 @@ class BearUI(App):
 
 
 def run_ui(
-    notes: list[Note],
     fuzzy: bool = False,
     db_path: Path = DEFAULT_DB_PATH,
     tag_filter: str | None = None,
 ) -> None:
-    BearUI(notes, fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter).run()
+    BearUI(fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter).run()
