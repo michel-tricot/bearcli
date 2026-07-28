@@ -266,7 +266,7 @@ class BearUI(App):
             if note.encrypted:
                 label.append("  🔒", "dim")
             if self.secret_counts.get(note.id):
-                label.append("  ⚠", "yellow")
+                label.append("  🤫", "yellow")
             options.append(Option(label, id=note.id))
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
@@ -304,7 +304,7 @@ class BearUI(App):
         if status:
             meta.append(f"status   {status}\n", "dim")
         if secrets := self.secret_counts.get(note.id):
-            meta.append(f"secrets  ⚠ {secrets} potential - careful when sharing\n", "yellow")
+            meta.append(f"secrets  🤫 {secrets} potential - careful when sharing\n", "yellow")
         meta.append("─" * 30 + "\n", "dim")
         if note.encrypted:
             meta.append("\n🔒 This note is encrypted.\n", "bold")

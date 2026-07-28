@@ -126,7 +126,7 @@ def test_secret_indicator(populated):
             option_texts = [
                 str(app.query_one("#results", OptionList).get_option_at_index(i).prompt) for i in range(len(notes))
             ]
-            assert any("⚠" in t and "Keys" in t for t in option_texts)
+            assert any("🤫" in t and "Keys" in t for t in option_texts)
 
     run(probe())
 

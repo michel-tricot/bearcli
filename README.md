@@ -67,7 +67,7 @@ bearcli stats                                # counts, words, top tags, notes pe
 filtering on the left, preview and inline markdown editor on the right.
 `/` search - `Enter` edit - `n`/`c` new note - `t`/`T` tag/untag (with
 autocompletion) - `o` open in Bear - `a` archive - `d` trash - `r` reload.
-Notes with detected secrets are marked ⚠; encrypted notes show 🔒 and keep
+Notes with detected secrets are marked 🤫; encrypted notes show 🔒 and keep
 their content in Bear.
 
 ### Search
