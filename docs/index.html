@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bearcli — Bear notes from the command line</title>
+<meta name="description" content="Read, search, export, and manage your Bear notes from the terminal. Read-only database access, fuzzy search, self-contained markdown exports.">
+<style>
+  :root {
+    --bg: #14100e;
+    --panel: #1e1815;
+    --panel-2: #251d19;
+    --border: #372b24;
+    --text: #e8ddd5;
+    --muted: #a08f83;
+    --accent: #e0654f;
+    --accent-soft: #f0937f;
+    --green: #9ec98f;
+    --yellow: #dcb96a;
+    --cyan: #8fc3c9;
+    --dim: #6e6058;
+    --mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  header { padding: 88px 0 40px; text-align: center; }
+  .bear { font-size: 56px; }
+  h1 {
+    font-family: var(--mono);
+    font-size: 44px;
+    letter-spacing: -1px;
+    margin: 8px 0 12px;
+  }
+  h1 .accent { color: var(--accent); }
+  .tagline { font-size: 20px; color: var(--muted); max-width: 560px; margin: 0 auto; }
+  .cta { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 10px 22px; border-radius: 8px;
+    text-decoration: none; font-weight: 600; font-size: 15px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-soft); }
+  .btn-ghost { border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); }
+
+  .term {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 48px 0;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 7px;
+    padding: 11px 14px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot:nth-child(1) { background: #f56b62; }
+  .dot:nth-child(2) { background: #f5bd4f; }
+  .dot:nth-child(3) { background: #53c22b; }
+  .term-title { margin-left: 8px; color: var(--dim); font: 12px var(--mono); }
+  .term pre {
+    padding: 20px 22px;
+    overflow-x: auto;
+    font: 13.5px/1.75 var(--mono);
+  }
+  .p  { color: var(--accent); }        /* prompt */
+  .c  { color: var(--dim); }           /* comment / borders */
+  .g  { color: var(--green); }
+  .y  { color: var(--yellow); }
+  .cy { color: var(--cyan); }
+  .m  { color: var(--muted); }
+
+  section { padding: 26px 0; }
+  h2 {
+    font-family: var(--mono);
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 18px 16px;
+  }
+  .card h3 { font-size: 15.5px; margin-bottom: 6px; }
+  .card p { font-size: 14px; color: var(--muted); }
+  .card code { font-family: var(--mono); font-size: 12.5px; color: var(--cyan); }
+
+  .install {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font: 14px var(--mono);
+    overflow-x: auto;
+  }
+  .install .p { user-select: none; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  th { color: var(--dim); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 1px; }
+  td code { font-family: var(--mono); font-size: 13px; color: var(--accent-soft); white-space: nowrap; }
+  td.desc { color: var(--muted); }
+
+  footer {
+    margin-top: 56px; padding: 28px 0 44px;
+    border-top: 1px solid var(--border);
+    text-align: center; color: var(--dim); font-size: 14px;
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="bear">🐻</div>
+    <h1><span class="accent">bear</span>cli</h1>
+    <p class="tagline">Read, search, export, and manage your <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes from the command line.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/michel-tricot/bearcli">View on GitHub</a>
+      <a class="btn btn-ghost" href="#commands">Commands</a>
+    </div>
+  </header>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="term-title">bearcli</span>
+    </div>
+    <pre><span class="p">❯</span> bearcli list -n 3
+<span class="c">╭──────────────────────────────────────┬────────────────────┬──────────┬────────┬──────────────────╮</span>
+<span class="c">│</span> <b>ID</b>                                   <span class="c">│</span> <b>Title</b>              <span class="c">│</span> <b>Tags</b>     <span class="c">│</span> <b>Status</b> <span class="c">│</span> <b>Modified</b>         <span class="c">│</span>
+<span class="c">├──────────────────────────────────────┼────────────────────┼──────────┼────────┼──────────────────┤</span>
+<span class="c">│</span> <span class="m">C44D09DC-7F0E-43BB-BEB8-67E3A389A448</span> <span class="c">│</span> bearcli fieldnotes <span class="c">│</span> <span class="cy">notes</span>    <span class="c">│</span>        <span class="c">│</span> 2026-07-27 20:54 <span class="c">│</span>
+<span class="c">│</span> <span class="m">7766167B-A410-48A9-8F1A-FB66F2BD8FE4</span> <span class="c">│</span> TODO               <span class="c">│</span> <span class="cy">work</span>     <span class="c">│</span> <span class="y">pinned</span> <span class="c">│</span> 2026-03-03 09:53 <span class="c">│</span>
+<span class="c">│</span> <span class="m">4DE9B0D9-62FD-4462-A3DA-3D2AFF7AA1B4</span> <span class="c">│</span> Smarthome          <span class="c">│</span> <span class="cy">home</span>     <span class="c">│</span>        <span class="c">│</span> 2026-07-26 13:57 <span class="c">│</span>
+<span class="c">╰──────────────────────────────────────┴────────────────────┴──────────┴────────┴──────────────────╯</span>
+
+<span class="p">❯</span> bearcli search <span class="g">"quarterly planing"</span> --fuzzy -n 1
+<span class="c">╭───────┬──────────────────────────────────────┬────────────────────┬───────────────────────────╮</span>
+<span class="c">│</span> <b>Score</b> <span class="c">│</span> <b>ID</b>                                   <span class="c">│</span> <b>Title</b>              <span class="c">│</span> <b>Match</b>                     <span class="c">│</span>
+<span class="c">├───────┼──────────────────────────────────────┼────────────────────┼───────────────────────────┤</span>
+<span class="c">│</span>    91 <span class="c">│</span> <span class="m">2F148B6A-082E-4C3D-82A7-1D60A64BC3FD</span> <span class="c">│</span> Planning           <span class="c">│</span> <span class="g">…quarterly planning doc…</span>  <span class="c">│</span>
+<span class="c">╰───────┴──────────────────────────────────────┴────────────────────┴───────────────────────────╯</span>
+
+<span class="p">❯</span> bearcli export ~/bear-backup --sync
+Exported to <span class="cy">~/bear-backup</span>: <span class="g">3 written</span>, 1919 unchanged, index updated</pre>
+  </div>
+
+  <section>
+    <h2>Install</h2>
+    <div class="install"><span class="p">❯</span> uv tool install git+https://github.com/michel-tricot/bearcli</div>
+  </section>
+
+  <section>
+    <h2>Why bearcli</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Safe by construction</h3>
+        <p>Reads Bear's SQLite database in <code>read-only</code> mode — Bear doesn't need to be running, and the database is never written.</p>
+      </div>
+      <div class="card">
+        <h3>Writes through Bear</h3>
+        <p>Create, edit, tag, and file notes via Bear's own x-callback-url API, with every change verified against the database.</p>
+      </div>
+      <div class="card">
+        <h3>Fuzzy search</h3>
+        <p>Typo-tolerant, ranked search across titles, tags, and note text — or plain case-insensitive matching by default.</p>
+      </div>
+      <div class="card">
+        <h3>Self-contained exports</h3>
+        <p>Each note becomes a portable folder — <code>README.md</code> + attachments — plus a generated index. GitHub renders the whole tree.</p>
+      </div>
+      <div class="card">
+        <h3>Incremental sync</h3>
+        <p><code>--sync</code> rewrites only what changed and cleans up deleted notes, never touching files it doesn't own.</p>
+      </div>
+      <div class="card">
+        <h3>Scriptable</h3>
+        <p>Every listing has <code>json</code> and tab-separated <code>text</code> output, built for <code>jq</code>, <code>cut</code>, and pipes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="commands">
+    <h2>Commands</h2>
+    <table>
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td><code>bearcli note list</code></td><td class="desc">List notes with tag, date, and status filters</td></tr>
+      <tr><td><code>bearcli note search</code></td><td class="desc">Search titles, tags, and content — <code style="color:var(--cyan)">--fuzzy</code> for typo tolerance</td></tr>
+      <tr><td><code>bearcli note get</code></td><td class="desc">Print a note's markdown, metadata, and attachment paths</td></tr>
+      <tr><td><code>bearcli note create</code></td><td class="desc">Create a note from arguments or stdin</td></tr>
+      <tr><td><code>bearcli note append / replace / rename</code></td><td class="desc">Edit an existing note</td></tr>
+      <tr><td><code>bearcli note attach</code></td><td class="desc">Add a file to a note</td></tr>
+      <tr><td><code>bearcli note tag / untag</code></td><td class="desc">Add or remove a tag on one note</td></tr>
+      <tr><td><code>bearcli note trash / archive / open</code></td><td class="desc">File a note away, or open it in Bear</td></tr>
+      <tr><td><code>bearcli tag list / rename / delete</code></td><td class="desc">Manage tags across all notes</td></tr>
+      <tr><td><code>bearcli export</code></td><td class="desc">Export everything as browsable markdown folders</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    <a href="https://github.com/michel-tricot/bearcli">github.com/michel-tricot/bearcli</a>
+    &nbsp;·&nbsp; macOS &nbsp;·&nbsp; not affiliated with Shiny Frog
+  </footer>
+</div>
+
+</body>
+</html>
