@@ -179,6 +179,53 @@ class TagScreen(ModalScreen[str | None]):
         self.dismiss(None)
 
 
+HELP_ROWS = [
+    ("Navigate", ""),
+    ("↑ ↓", "move through the note list"),
+    ("/", "focus search (esc returns to the list)"),
+    ("tab", "switch pane"),
+    ("1 / 2 / 3", "notes / archive / trash view"),
+    ("Act on the selected note", ""),
+    ("enter or e", "edit in the right panel"),
+    ("n or c", "new note"),
+    ("t / T", "add / remove a tag (with autocompletion)"),
+    ("o", "open in Bear"),
+    ("a", "archive"),
+    ("d", "move to trash"),
+    ("r", "reload everything from Bear"),
+    ("While editing", ""),
+    ("ctrl+s", "save to Bear"),
+    ("esc", "discard and return to browsing"),
+]
+
+
+class HelpScreen(ModalScreen[None]):
+    """Key map overlay."""
+
+    BINDINGS = [Binding("escape,question_mark", "close", "Close")]
+    CSS = """
+    HelpScreen { align: center middle; }
+    #help-box {
+        width: 62; height: auto; padding: 1 2;
+        border: round $accent; background: $panel;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        table = RichTable.grid(padding=(0, 2))
+        table.add_column(style="bold", no_wrap=True)
+        table.add_column()
+        for key, description in HELP_ROWS:
+            if not description:
+                table.add_row(Text(key, "dim italic"), "")
+            else:
+                table.add_row(key, description)
+        yield Static(table, id="help-box")
+
+    def action_close(self) -> None:
+        self.dismiss(None)
+
+
 class BearUI(App):
     """Browse, edit, and organize Bear notes from the terminal."""
 
@@ -207,6 +254,10 @@ class BearUI(App):
         Binding("T", "remove_tag", "Untag", show=False),
         Binding("o", "open_in_bear", "Open in Bear"),
         Binding("r", "refresh", "Refresh", show=False),
+        Binding("1", "switch_view('notes')", "View", key_display="1/2/3"),
+        Binding("question_mark", "help", "Help", key_display="?"),
+        Binding("2", "switch_view('archive')", "Archive view", show=False),
+        Binding("3", "switch_view('trash')", "Trash view", show=False),
         Binding("a", "archive_note", "Archive"),
         Binding("d", "trash_note", "Trash"),
         Binding("ctrl+s", "save_edit", "Save to Bear"),
@@ -225,6 +276,7 @@ class BearUI(App):
         self.fuzzy = fuzzy
         self.db_path = db_path
         self.tag_filter = tag_filter
+        self.view = "notes"  # notes | archive | trash
         self.search_query = ""
         self.shown: list[Note] = []
         self.editing: Note | None = None
@@ -260,6 +312,7 @@ class BearUI(App):
             "trash_note",
             "focus_search",
             "refresh",
+            "switch_view",
         }
         if self.edit_mode and action in browse_only:
             return False
@@ -290,7 +343,7 @@ class BearUI(App):
             fresh = db.get_note(note_id)
         finally:
             db.close()
-        if fresh is None or fresh.trashed or fresh.archived:
+        if fresh is None or not self._in_current_view(fresh):
             self.notes = [n for n in self.notes if n.id != note_id]
             self.secret_values.pop(note_id, None)
         else:
@@ -307,10 +360,11 @@ class BearUI(App):
 
     @work(exclusive=True, thread=True, group="rehydrate")
     def _rehydrate(self) -> None:
-        """Reload every note from the database - manual refresh, also catches edits made in Bear."""
+        """Reload the current view from the database - also catches edits made in Bear."""
         db = BearDB(self.db_path)
         try:
-            notes = db.list_notes(limit=None, tag=self.tag_filter, with_text=True)
+            only = {"archive": "archived", "trash": "trashed"}.get(self.view)
+            notes = db.list_notes(limit=None, tag=self.tag_filter, with_text=True, only=only)
         finally:
             db.close()
         self.notes = notes
@@ -365,7 +419,8 @@ class BearUI(App):
         result_list = self.query_one("#results", OptionList)
         result_list.clear_options()
         result_list.add_options(options)
-        result_list.border_title = f"{len(self.shown)} / {len(self.notes)} notes"
+        prefix = {"notes": "", "archive": "Archive · ", "trash": "Trash · "}[self.view]
+        result_list.border_title = f"{prefix}{len(self.shown)} / {len(self.notes)} notes"
         select_id, self._select_id = self._select_id, None
         index = next((i for i, n in enumerate(self.shown) if n.id == select_id), None) if select_id else None
         if self.shown:
@@ -520,6 +575,17 @@ class BearUI(App):
 
             self.push_screen(TagScreen(f"Remove tag from “{note.title}”", note.tags), on_done)
 
+    def action_switch_view(self, view: str) -> None:
+        if view == self.view:
+            return
+        self.view = view
+        self._select_id = None
+        self.notify({"notes": "Notes", "archive": "Archive", "trash": "Trash"}[view] + " view")
+        self._rehydrate()
+
+    def action_help(self) -> None:
+        self.push_screen(HelpScreen())
+
     def action_refresh(self) -> None:
         self._rehydrate()
         self.notify("Reloading from Bear…")
@@ -575,7 +641,17 @@ class BearUI(App):
         message = f"Tagged with {tag!r}" if add else f"Removed tag {tag!r}"
         self._after_write(note.id, fresh, message, "Tag" if add else "Untag", edit_after=True)
 
+    def _in_current_view(self, note: Note) -> bool:
+        if self.view == "trash":
+            return note.trashed
+        if self.view == "archive":
+            return note.archived and not note.trashed
+        return not note.trashed and not note.archived
+
     def _file_away(self, operation: str) -> None:
+        if (operation == "trash" and self.view == "trash") or (operation == "archive" and self.view == "archive"):
+            self.notify(f"Already in the {self.view} view", severity="warning")
+            return
         if note := self._selected():
             self._file_away_worker(note, operation)
 

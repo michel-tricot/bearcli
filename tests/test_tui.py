@@ -224,3 +224,41 @@ def test_removal_selects_neighbour():
             assert app.shown[results.highlighted].id == "N3"
 
     run(probe())
+
+
+def test_view_switching(populated):
+    db = populated.open()
+    notes = db.list_notes(limit=None, with_text=True)
+
+    async def probe():
+        app = BearUI(notes, db_path=populated.path)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.press("3")
+            await pilot.pause(0.8)
+            assert {n.title for n in app.notes} == {"Gone"}
+            await pilot.press("2")
+            await pilot.pause(0.8)
+            assert {n.title for n in app.notes} == {"Old stuff"}
+            await pilot.press("1")
+            await pilot.pause(0.8)
+            assert "Groceries" in {n.title for n in app.notes}
+
+    run(probe())
+
+
+def test_help_overlay():
+    async def probe():
+        app = BearUI(list(NOTES))
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.press("question_mark")
+            await pilot.pause()
+            from bearcli.tui import HelpScreen
+
+            assert isinstance(app.screen, HelpScreen)
+            await pilot.press("escape")
+            await pilot.pause()
+            assert not isinstance(app.screen, HelpScreen)
+
+    run(probe())
