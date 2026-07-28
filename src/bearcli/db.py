@@ -144,6 +144,18 @@ class BearDB:
         ).fetchall()
         return [(row[0], row[1]) for row in rows]
 
+    def attachment_stats(self) -> tuple[int, int]:
+        """(count, total bytes) of attachments on non-deleted notes."""
+        row = self.conn.execute(
+            """
+            SELECT COUNT(*), COALESCE(SUM(f.ZFILESIZE), 0)
+            FROM ZSFNOTEFILE f
+            JOIN ZSFNOTE n ON n.Z_PK = f.ZNOTE
+            WHERE f.ZPERMANENTLYDELETED = 0 AND n.ZPERMANENTLYDELETED = 0 AND n.ZTRASHED = 0
+            """
+        ).fetchone()
+        return row[0], row[1]
+
     def _attachments_for_note(self, note_pk: int) -> list[Attachment]:
         rows = self.conn.execute(
             """
