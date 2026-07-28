@@ -11,10 +11,9 @@ raw layers stay available underneath (`bear.db`, `bearkit.ops`,
 
 ## `Bear`
 
-Opens Bear's SQLite database read-only; writes go through the Bear app's
-x-callback API (launching it if needed - the database itself is never
-written) and are verified against the database before returning. Context
-manager, or call `close()`.
+Reads your notes directly; writes go through the Bear app (launching it if
+needed) and are verified before returning. Context manager, or call
+`close()`.
 
 ```python
 from bearkit import Bear

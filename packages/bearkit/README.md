@@ -1,8 +1,8 @@
 # 🐻 `bearkit`
 
-The Python toolkit for the [Bear](https://bear.app) notes app: read notes
-from Bear's database (read-only), write them through Bear's own API with
-verification, search, and offline secret detection. macOS only.
+The Python toolkit for the [Bear](https://bear.app) notes app: read your
+notes, write them through the Bear app with verification, search them, and
+detect secrets - all offline. macOS only.
 
 ```python
 from bearkit import Bear
