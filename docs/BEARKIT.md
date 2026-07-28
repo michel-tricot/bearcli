@@ -270,33 +270,39 @@ for result in search_notes(notes, "quarterly planing")[:5]:
 
 ## Secrets - `bearkit.secrets`
 
-### `scan_notes(notes) -> list[SecretFinding]`
+### `scan_notes(notes) -> ScanReport`
 
 Offline detection: known token formats, entropy analysis, and labeled
-credentials. `SecretFinding.excerpt` is safe to display;
+credentials. The report iterates as `SecretFinding`s and is truthy when
+anything was found. `SecretFinding.excerpt` is safe to display;
 `SecretFinding.secret` holds the raw value for redaction - never print it.
 
 ```python
 from bearkit import Bear, scan_notes
 
 bear = Bear()
-findings = scan_notes(bear.list_notes(limit=None))
-for f in findings:
+report = scan_notes(bear.list_notes(limit=None))
+print(f"{len(report)} finding(s) in {report.notes_affected()} note(s)")
+for f in report:
     print(f.note_title, f.rule, f.line, f.excerpt)
 ```
 
-### `redaction_map(findings)` and `redact_text(text, secrets)`
+### `ScanReport.redact(note)` and friends
+
+`redact(note)` returns the note's text with every detected value replaced by
+`[redacted: <rule>]`. `has(note_id)` and `for_note(note_id)` answer per-note
+questions without touching raw values; `redact_text(text)` redacts arbitrary
+text (e.g. after rewriting links) using every finding in the report.
 
 ```python
-from bearkit import Bear, redact_text, redaction_map, scan_notes
+from bearkit import Bear, scan_notes
 
 bear = Bear()
 notes = bear.list_notes(limit=None)
-by_note = redaction_map(scan_notes(notes))  # {note_id: {secret_value: rule}}
+report = scan_notes(notes)
 for n in notes:
-    if n.id in by_note and n.text is not None:
-        safe = redact_text(n.text, by_note[n.id])  # values become [redacted: <rule>]
-        print(safe)
+    if report.has(n.id):
+        print(report.redact(n))
 ```
 
 ## Markdown - `bearkit.markdown`

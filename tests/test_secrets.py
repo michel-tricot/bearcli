@@ -1,5 +1,5 @@
 from bearkit.db import Note
-from bearkit.secrets import redact_text, redaction_map, scan_notes
+from bearkit.secrets import scan_notes
 
 
 def note(text: str) -> Note:
@@ -58,12 +58,23 @@ def test_excerpt_never_contains_full_secret():
         assert "AKIAIOSFODNN7EXAMPLE" not in f.excerpt
 
 
-def test_redact_text_replaces_all_and_longest_first():
+def test_scan_report_redacts_note():
     n = note("key AKIAIOSFODNN7EXAMPLE here")
-    secrets = redaction_map(scan_notes([n]))["N1"]
-    redacted = redact_text(n.text, secrets)
+    report = scan_notes([n])
+    assert report.has("N1")
+    assert report.notes_affected() == 1
+    redacted = report.redact(n)
     assert "AKIAIOSFODNN7EXAMPLE" not in redacted
     assert "[redacted: AWS Access Key]" in redacted
+
+
+def test_scan_report_empty_note_untouched():
+    n = note("just plain prose about the weather")
+    report = scan_notes([n])
+    assert not report
+    assert len(report) == 0
+    assert report.for_note("N1") == {}
+    assert report.redact(n) == n.text
 
 
 def test_prose_is_not_flagged():

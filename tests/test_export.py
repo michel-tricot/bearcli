@@ -1,5 +1,5 @@
 from bearcli.export import export_notes, slugify
-from bearkit.secrets import redaction_map, scan_notes
+from bearkit.secrets import scan_notes
 
 
 def test_slugify():
@@ -59,7 +59,7 @@ def test_redaction_state_participates_in_sync(bear, tmp_path):
     db = bear.open()
     dest = tmp_path / "out"
     notes = db.list_notes(limit=None, include_archived=True)
-    redactions = redaction_map(scan_notes(notes))
+    redactions = scan_notes(notes)
 
     export_notes(db, dest, redactions=redactions)
     readme = (dest / "keys-aaaa0000" / "README.md").read_text()

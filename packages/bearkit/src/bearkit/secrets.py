@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from detect_secrets.core.plugins.util import get_mapping_from_secret_type_to_class
@@ -178,26 +179,64 @@ def _scan_note(note: Note, plugins: list[BasePlugin]) -> list[SecretFinding]:
     return findings
 
 
-def scan_notes(notes: list[Note]) -> list[SecretFinding]:
-    plugins = _build_plugins()
-    findings = []
-    for note in notes:
-        findings.extend(_scan_note(note, plugins))
-    return findings
-
-
-def redaction_map(findings: list[SecretFinding]) -> dict[str, dict[str, str]]:
-    """Per note id, the secret values to replace and the rule that found them."""
-    by_note: dict[str, dict[str, str]] = {}
-    for finding in findings:
-        if finding.secret:
-            by_note.setdefault(finding.note_id, {}).setdefault(finding.secret, finding.rule)
-    return by_note
-
-
-def redact_text(text: str, secrets: dict[str, str]) -> str:
-    """Replace each secret value with a placeholder naming the rule that found it."""
+def _replace(text: str, secrets: dict[str, str]) -> str:
     # Longest first, in case one detected value contains another.
     for value in sorted(secrets, key=len, reverse=True):
         text = text.replace(value, f"[redacted: {secrets[value]}]")
     return text
+
+
+@dataclass
+class ScanReport:
+    """The outcome of a scan: findings, plus the redaction that follows.
+
+    Iterable and truthy on findings; per-note access via `has`/`for_note`;
+    `redact`/`redact_text` replace each detected value with a
+    `[redacted: <rule>]` placeholder.
+    """
+
+    findings: list[SecretFinding]
+
+    def __iter__(self) -> Iterator[SecretFinding]:
+        return iter(self.findings)
+
+    def __len__(self) -> int:
+        return len(self.findings)
+
+    def __bool__(self) -> bool:
+        return bool(self.findings)
+
+    def has(self, note_id: str) -> bool:
+        return any(f.note_id == note_id for f in self.findings)
+
+    def for_note(self, note_id: str) -> dict[str, str]:
+        """The note's secret values mapped to the rule that found them."""
+        values: dict[str, str] = {}
+        for finding in self.findings:
+            if finding.note_id == note_id and finding.secret:
+                values.setdefault(finding.secret, finding.rule)
+        return values
+
+    def redact_text(self, text: str) -> str:
+        """The text with every detected value replaced by its placeholder."""
+        secrets: dict[str, str] = {}
+        for finding in self.findings:
+            if finding.secret:
+                secrets.setdefault(finding.secret, finding.rule)
+        return _replace(text, secrets)
+
+    def redact(self, note: Note) -> str:
+        """The note's text, redacted ("" for encrypted notes)."""
+        return _replace(note.text or "", self.for_note(note.id))
+
+    def notes_affected(self) -> int:
+        return len({f.note_id for f in self.findings})
+
+
+def scan_notes(notes: list[Note]) -> ScanReport:
+    """Scan every note; the report carries the findings and can redact."""
+    plugins = _build_plugins()
+    findings: list[SecretFinding] = []
+    for note in notes:
+        findings.extend(_scan_note(note, plugins))
+    return ScanReport(findings)

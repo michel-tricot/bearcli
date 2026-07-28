@@ -12,7 +12,7 @@ from pathlib import Path
 
 from bearkit.db import BearDB, Note
 from bearkit.markdown import rewrite_attachment_refs
-from bearkit.secrets import redact_text
+from bearkit.secrets import ScanReport
 
 NOTE_FILENAME = "README.md"
 ATTACHMENTS_DIRNAME = "attachments"
@@ -157,7 +157,7 @@ def export_notes(
     dest: Path,
     sync: bool = False,
     progress: Callable[[str], None] | None = None,
-    redactions: dict[str, dict[str, str]] | None = None,
+    redactions: ScanReport | None = None,
 ) -> ExportResult:
     """Write every non-trashed note as dest/<slug>/README.md plus attachments/.
 
@@ -193,7 +193,7 @@ def export_notes(
         note_dir = dest / slug
         note_path = note_dir / NOTE_FILENAME
 
-        note_secrets = (redactions or {}).get(summary.id, {})
+        note_secrets = redactions.for_note(summary.id) if redactions else {}
         modified_iso = summary.modified.isoformat() if summary.modified else ""
         if sync and note_path.exists():
             existing = _parse_frontmatter(note_path)
@@ -213,8 +213,8 @@ def export_notes(
             continue
 
         text = _rewrite_refs(note)
-        if note_secrets:
-            text = redact_text(text, note_secrets)
+        if note_secrets and redactions is not None:
+            text = redactions.redact_text(text)
         note_dir.mkdir(exist_ok=True)
         note_path.write_text(f"{_frontmatter(note, redacted=bool(note_secrets))}\n{text}\n")
 

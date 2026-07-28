@@ -19,7 +19,7 @@ from bearcli.cli.common import (
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
 from bearkit.db import DEFAULT_DB_PATH
-from bearkit.secrets import SecretFinding, redaction_map, scan_notes
+from bearkit.secrets import ScanReport, SecretFinding, scan_notes
 
 
 def _report_secrets(findings: list[SecretFinding]) -> None:
@@ -78,16 +78,15 @@ def export(
         raise typer.Exit(2)
     db = _open_db(db_path)
     try:
-        redactions: dict[str, dict[str, str]] | None = None
+        redactions: ScanReport | None = None
         if not allow_secrets:
             with console.status("Scanning notes for secrets…", spinner="dots"):
-                candidates = db.list_notes(limit=None, include_archived=True)
-                findings = scan_notes(candidates)
-            if findings and not redact_secrets:
-                _report_secrets(findings)
+                report = scan_notes(db.list_notes(limit=None, include_archived=True))
+            if report and not redact_secrets:
+                _report_secrets(report.findings)
                 raise typer.Exit(1)
-            if findings:
-                redactions = redaction_map(findings)
+            if report:
+                redactions = report
         with console.status("Exporting…", spinner="dots") as status:
             update = lambda msg: status.update(rich_escape(msg))  # noqa: E731
             if push:
@@ -113,6 +112,5 @@ def export(
     if result.index_updated:
         parts.append("index updated")
     if redactions:
-        secrets_count = sum(len(v) for v in redactions.values())
-        parts.append(f"{secrets_count} secret(s) redacted in {len(redactions)} note(s)")
+        parts.append(f"{len(redactions)} secret(s) redacted in {redactions.notes_affected()} note(s)")
     console.print(f"Exported to {dest}: " + ", ".join(parts))

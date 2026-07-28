@@ -17,6 +17,7 @@ from pathlib import Path
 
 from bearcli.export import ExportResult, export_notes
 from bearkit.db import BearDB
+from bearkit.secrets import ScanReport
 
 
 class GitError(RuntimeError):
@@ -49,7 +50,7 @@ def export_and_push(
     dest: Path,
     sync: bool = True,
     progress: Callable[[str], None] | None = None,
-    redactions: dict[str, dict[str, str]] | None = None,
+    redactions: ScanReport | None = None,
     attempts: int = 3,
 ) -> tuple[ExportResult, str]:
     def report(message: str) -> None:

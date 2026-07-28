@@ -26,7 +26,7 @@ from bearkit.db import (
 )
 from bearkit.ops import BearWriteError, TagMarkerNotFound, TextMode
 from bearkit.search import SearchResult, naive_search, search_notes
-from bearkit.secrets import SecretFinding, redact_text, redaction_map, scan_notes
+from bearkit.secrets import ScanReport, SecretFinding, scan_notes
 
 __all__ = [
     "DEFAULT_DB_PATH",
@@ -37,6 +37,7 @@ __all__ = [
     "BearWriteError",
     "Note",
     "NoteFilter",
+    "ScanReport",
     "SearchResult",
     "SecretFinding",
     "TagMarkerNotFound",
@@ -46,8 +47,6 @@ __all__ = [
     "markdown",
     "naive_search",
     "ops",
-    "redact_text",
-    "redaction_map",
     "scan_notes",
     "search",
     "search_notes",

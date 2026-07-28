@@ -26,7 +26,7 @@ from textual.widgets.option_list import Option
 from bearkit import actions, ops
 from bearkit.db import DEFAULT_DB_PATH, BearDB, Note
 from bearkit.search import SearchResult, naive_search, search_notes
-from bearkit.secrets import redaction_map, scan_notes
+from bearkit.secrets import ScanReport, scan_notes
 
 HIGHLIGHT = "black on #dcb96a"
 SECRET_STYLE = "black on #ff9999"
@@ -374,7 +374,7 @@ class BearUI(App):
         self.shown: list[Note] = []
         self.editing: Note | None = None
         self.creating = False
-        self.secret_values: dict[str, dict[str, str]] = {}  # note id -> {secret value: rule}, as built for redaction
+        self.scan = ScanReport([])
         self._select_id: str | None = None
         self._pending_edit_id: str | None = None
 
@@ -444,10 +444,10 @@ class BearUI(App):
 
     @work(exclusive=True, thread=True, group="scan")
     def _scan_secrets(self) -> None:
-        self.call_from_thread(self._apply_secret_values, redaction_map(scan_notes(self.notes)))
+        self.call_from_thread(self._apply_scan, scan_notes(self.notes))
 
-    def _apply_secret_values(self, values: dict[str, dict[str, str]]) -> None:
-        self.secret_values = values
+    def _apply_scan(self, scan: ScanReport) -> None:
+        self.scan = scan
         results = self.query_one("#results", OptionList)
         self._set_list_loading(False)
         if self._focus_list_after_load:
@@ -466,19 +466,16 @@ class BearUI(App):
             fresh = db.get_note(note_id)
         finally:
             db.close()
+        kept = [f for f in self.scan.findings if f.note_id != note_id]
         if fresh is None or not self._in_current_view(fresh):
             self.notes = [n for n in self.notes if n.id != note_id]
-            self.secret_values.pop(note_id, None)
+            self.scan = ScanReport(kept)
         else:
-            secrets = redaction_map(scan_notes([fresh])).get(note_id)
             if note_id in {n.id for n in self.notes}:
                 self.notes = [fresh if n.id == note_id else n for n in self.notes]
             else:
                 self.notes.insert(0, fresh)
-            if secrets:
-                self.secret_values[note_id] = secrets
-            else:
-                self.secret_values.pop(note_id, None)
+            self.scan = ScanReport(kept + scan_notes([fresh]).findings)
         self.call_from_thread(self._run_filter, self.search_query)
 
     @work(exclusive=True, thread=True, group="rehydrate")
@@ -491,7 +488,7 @@ class BearUI(App):
         finally:
             db.close()
         self.notes = notes
-        self.call_from_thread(self._apply_secret_values, redaction_map(scan_notes(notes)))
+        self.call_from_thread(self._apply_scan, scan_notes(notes))
 
     def action_focus_search(self) -> None:
         query = self.query_one("#query", Input)
@@ -521,7 +518,7 @@ class BearUI(App):
         self.shown = [r.note for r in results]
         options = []
         for note in self.shown:
-            has_secret = bool(self.secret_values.get(note.id))
+            has_secret = self.scan.has(note.id)
             date = note.modified.strftime("%Y-%m-%d") if note.modified else " " * 10
             label = Text.assemble((date, "dim"), "  ")
             label.append(_highlighted(note.title, query, "bold red" if has_secret else "bold"))
@@ -555,7 +552,7 @@ class BearUI(App):
             note = next((n for n in self.shown if n.id == pending), None)
             if note and note.text is not None:
                 self.editing = note
-                self._enter_editor(note.title, note.text, secrets=self.secret_values.get(note.id, {}))
+                self._enter_editor(note.title, note.text, secrets=self.scan.for_note(note.id))
 
     def _selected(self) -> Note | None:
         results = self.query_one("#results", OptionList)
@@ -581,7 +578,7 @@ class BearUI(App):
             meta.append(f"tags     {', '.join(note.tags)}\n", "dim")
         if status:
             meta.append(f"status   {status}\n", "dim")
-        if secrets := self.secret_values.get(note.id):
+        if secrets := self.scan.for_note(note.id):
             meta.append(f"secrets  🚨 {len(secrets)} potential - careful when sharing\n", "yellow")
         meta.append("─" * 30 + "\n", "dim")
         if note.encrypted:
@@ -594,7 +591,7 @@ class BearUI(App):
             rules: list[tuple[str, str, bool]] = [
                 (word, HIGHLIGHT, False) for word in self.search_query.split() if len(word) >= 2
             ]
-            rules += [(value, SECRET_STYLE, True) for value in self.secret_values.get(note.id, {})]
+            rules += [(value, SECRET_STYLE, True) for value in self.scan.for_note(note.id)]
             body: RenderableType = _LeftMarkdown(source)
             if rules:
                 body = _StyledMatches(body, rules)
@@ -650,7 +647,7 @@ class BearUI(App):
             self.notify("Encrypted notes can't be edited here", severity="warning")
             return
         self.editing = note
-        self._enter_editor(note.title, note.text, secrets=self.secret_values.get(note.id, {}))
+        self._enter_editor(note.title, note.text, secrets=self.scan.for_note(note.id))
 
     def action_new_note(self) -> None:
         if self.edit_mode:
@@ -806,7 +803,7 @@ class BearUI(App):
                 neighbour = self.shown[index + 1] if index + 1 < len(self.shown) else self.shown[index - 1]
                 self._select_id = neighbour.id
             self.notes = [n for n in self.notes if n.id != note.id]
-            self.secret_values.pop(note.id, None)
+            self.scan = ScanReport([f for f in self.scan.findings if f.note_id != note.id])
             self.call_from_thread(self._run_filter, self.search_query)
             self.call_from_thread(self.notify, f"{operation.capitalize()}ed {note.title!r}")
         else:

@@ -28,7 +28,7 @@ from bearkit import actions, ops
 from bearkit.db import DEFAULT_DB_PATH, BearDB, Note
 from bearkit.markdown import rewrite_attachment_refs
 from bearkit.search import naive_search, search_notes
-from bearkit.secrets import redact_text, redaction_map, scan_notes
+from bearkit.secrets import scan_notes
 
 
 def _resolve_attachments(note: Note) -> str:
@@ -162,8 +162,7 @@ def get(
 
     text = _resolve_attachments(note) if resolve_attachments else note.text
     if redact_secrets and text is not None:
-        note_secrets = redaction_map(scan_notes([note])).get(note.id, {})
-        text = redact_text(text, note_secrets)
+        text = scan_notes([note]).redact_text(text)
 
     if fmt is OutputFormat.json:
         data = _note_to_dict(note, with_text=True)
