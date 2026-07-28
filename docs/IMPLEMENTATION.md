@@ -86,6 +86,15 @@ operations stay functional in `ops`; enums over magic strings
 note is encrypted (text is always loaded); `Bear`/`BearDB` are context
 managers; both packages ship `py.typed`. API reference: `docs/BEARKIT.md`.
 
+bearcli itself consumes the facade: CLI commands and TUI write workers hold
+a `Bear` (the TUI one per worker thread — SQLite connections don't cross
+threads). The deliberate exceptions stay on the lower layers: `export.py`/
+`gitsync.py` take the narrower `BearDB` (handed `bear.db` by the CLI), pure
+computations over already-loaded notes use the free functions (`scan_notes`
+in the TUI, `search_notes` on filtered views), and the TUI's db-free
+open-in-Bear calls `actions.open_note` directly rather than opening a
+connection just to fire a URL.
+
 ## CLI design (`cli.py`)
 
 - Commands are grouped gh-style into `note` and `tag` sub-apps (plus

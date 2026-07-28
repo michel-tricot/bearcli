@@ -12,14 +12,14 @@ from rich.table import Table
 
 from bearcli.cli.common import (
     DbPathOption,
-    _open_db,
+    _open_bear,
     app,
     console,
 )
 from bearcli.export import export_notes
 from bearcli.gitsync import GitError, export_and_push
 from bearkit.db import DEFAULT_DB_PATH
-from bearkit.secrets import ScanReport, SecretFinding, scan_notes
+from bearkit.secrets import ScanReport, SecretFinding
 
 
 def _report_secrets(findings: list[SecretFinding]) -> None:
@@ -76,12 +76,12 @@ def export(
     if allow_secrets and redact_secrets:
         console.print("[red]Error:[/red] --allow-secrets and --redact-secrets are mutually exclusive")
         raise typer.Exit(2)
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
         redactions: ScanReport | None = None
         if not allow_secrets:
             with console.status("Scanning notes for secrets…", spinner="dots"):
-                report = scan_notes(db.list_notes(limit=None, include_archived=True))
+                report = bear.scan_secrets()
             if report and not redact_secrets:
                 _report_secrets(report.findings)
                 raise typer.Exit(1)
@@ -91,14 +91,14 @@ def export(
             update = lambda msg: status.update(rich_escape(msg))  # noqa: E731
             if push:
                 try:
-                    result, outcome = export_and_push(db, dest, sync=sync, progress=update, redactions=redactions)
+                    result, outcome = export_and_push(bear.db, dest, sync=sync, progress=update, redactions=redactions)
                 except GitError as exc:
                     console.print(f"[red]Error:[/red] {exc}")
                     raise typer.Exit(1) from None
             else:
-                result = export_notes(db, dest, sync=sync, progress=update, redactions=redactions)
+                result = export_notes(bear.db, dest, sync=sync, progress=update, redactions=redactions)
     finally:
-        db.close()
+        bear.close()
 
     parts = [f"{result.written} written"]
     if push:

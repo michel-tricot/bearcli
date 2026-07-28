@@ -12,7 +12,7 @@ from rich.table import Table
 from bearcli.cli.common import (
     DbPathOption,
     OutputFormat,
-    _open_db,
+    _open_bear,
     app,
     console,
 )
@@ -28,13 +28,13 @@ def stats(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Show statistics about the note library."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        notes = db.list_notes(limit=None, include_trashed=True, include_archived=True)
-        tag_counts = db.list_tags()
-        attachment_count, attachment_bytes = db.attachment_stats()
+        notes = bear.list_notes(limit=None, include_trashed=True, include_archived=True)
+        tag_counts = bear.list_tags()
+        attachment_count, attachment_bytes = bear.attachment_stats()
     finally:
-        db.close()
+        bear.close()
 
     active = [n for n in notes if not n.trashed and not n.archived]
     by_year: dict[str, int] = {}
@@ -101,5 +101,5 @@ def ui(
     """Bear in the terminal: search, edit, create, tag, and organize notes."""
     from bearcli.tui import run_ui
 
-    _open_db(db_path).close()  # fail fast with a clear message if the db is missing
+    _open_bear(db_path).close()  # fail fast with a clear message if the db is missing
     run_ui(fuzzy=fuzzy, db_path=db_path, tag_filter=tag_filter)

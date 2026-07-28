@@ -60,9 +60,12 @@ tag and publishes both.
   helpers), `notes.py` (the `note` group), `tags.py` (the `tag` group),
   `export.py`, `misc.py` (stats, ui), `__init__.py` (assembly + top-level
   aliases shown in the "Shortcuts" help panel). All presentation (Rich
-  tables, JSON/text formats, spinner) lives here.
+  tables, JSON/text formats, spinner) lives here. Commands go through the
+  `Bear` facade; pure helpers over already-loaded notes (`scan_notes`)
+  stay functional.
 - `tui.py` — the interactive `ui` Textual app (search, edit, create, tag;
-  writes via bearkit.ops, verified like the CLI).
+  verified writes through a per-worker `Bear` facade — SQLite connections
+  don't cross threads).
 - `export.py` — export to per-note directories with index generation.
   UI-free; reports progress through an optional callback. Export blocks on
   secret findings before writing anything (`--allow-secrets` overrides).

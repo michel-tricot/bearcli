@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
@@ -12,8 +11,8 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from bearkit import actions
-from bearkit.db import AmbiguousNoteId, BearDB, Note, NoteFilter
+from bearkit import Bear
+from bearkit.db import AmbiguousNoteId, Note, NoteFilter
 
 app = typer.Typer(help="Read notes from the Bear note app.", no_args_is_help=True, add_completion=False)
 
@@ -59,9 +58,9 @@ DbPathOption = Annotated[
 ]
 
 
-def _open_db(path: Path) -> BearDB:
+def _open_bear(path: Path) -> Bear:
     try:
-        return BearDB(path)
+        return Bear(path)
     except FileNotFoundError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(1) from None
@@ -86,9 +85,9 @@ def _text_or_stdin(text: str | None) -> str | None:
     return text
 
 
-def _require_note(db: BearDB, note_id: str) -> Note:
+def _require_note(bear: Bear, note_id: str) -> Note:
     try:
-        note = db.get_note(note_id)
+        note = bear.get_note(note_id)
     except AmbiguousNoteId as exc:
         console.print(f"[red]Error:[/red] note id prefix {exc.prefix!r} matches several notes:")
         for full_id, title in exc.matches:
@@ -98,11 +97,3 @@ def _require_note(db: BearDB, note_id: str) -> Note:
         console.print(f"[red]Error:[/red] no note with id {note_id!r}")
         raise typer.Exit(1)
     return note
-
-
-def _verify(ok: Callable[[], bool], success: str, failure: str) -> None:
-    if actions.wait_for(ok):
-        console.print(success)
-    else:
-        console.print(f"[red]Error:[/red] {failure}")
-        raise typer.Exit(1)

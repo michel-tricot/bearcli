@@ -17,17 +17,16 @@ from bearcli.cli.common import (
     OnlyFilter,
     OutputFormat,
     _note_to_dict,
-    _open_db,
+    _open_bear,
     _parse_date,
     _require_note,
     _text_or_stdin,
     console,
     note_app,
 )
-from bearkit import actions, ops
-from bearkit.db import DEFAULT_DB_PATH, BearDB, Note
+from bearkit import Bear, BearWriteError, TagMarkerNotFound, TextMode
+from bearkit.db import DEFAULT_DB_PATH, Note
 from bearkit.markdown import rewrite_attachment_refs
-from bearkit.search import naive_search, search_notes
 from bearkit.secrets import scan_notes
 
 
@@ -71,9 +70,9 @@ def list_notes(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """List notes, most recently modified first."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        notes = db.list_notes(
+        notes = bear.list_notes(
             limit=None if all_notes else limit,
             tag=tag,
             created_after=_parse_date(created_after, "--created-after"),
@@ -85,7 +84,7 @@ def list_notes(
             include_archived=archived,
         )
     finally:
-        db.close()
+        bear.close()
 
     if ids_only:
         for note in notes:
@@ -150,11 +149,11 @@ def get(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Print the content of a note."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
     finally:
-        db.close()
+        bear.close()
 
     if note.encrypted or note.text is None:
         console.print(f"[red]Error:[/red] note {note.id} is encrypted; its content is unavailable")
@@ -208,16 +207,16 @@ def get(
 def _perform(operation: Callable[[], Note], success: str, failure: str) -> None:
     try:
         operation()
-    except ops.BearWriteError:
+    except BearWriteError:
         console.print(f"[red]Error:[/red] {failure}")
         raise typer.Exit(1) from None
     console.print(success)
 
 
-def _create_and_perform(db: BearDB, title: str, text: str | None, tags: list[str] | None) -> None:
+def _create_and_perform(bear: Bear, title: str, text: str | None, tags: list[str] | None) -> None:
     try:
-        created = ops.create_note(db, title, text, tags)
-    except ops.BearWriteError:
+        created = bear.create_note(title, text, tags)
+    except BearWriteError:
         console.print("[red]Error:[/red] note did not appear in the Bear database; is Bear able to run?")
         raise typer.Exit(1) from None
     console.print(f"Created note {created.id}")
@@ -231,11 +230,11 @@ def create(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Create a new note in Bear."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        _create_and_perform(db, title, _text_or_stdin(text), tags)
+        _create_and_perform(bear, title, _text_or_stdin(text), tags)
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -250,16 +249,16 @@ def append(
     if body is None:
         console.print("[red]Error:[/red] provide --text or pipe content on stdin")
         raise typer.Exit(2)
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        before = _require_note(db, note_id)
+        before = _require_note(bear, note_id)
         _perform(
-            lambda: ops.add_text(db, before, body, mode=ops.TextMode.PREPEND if prepend else ops.TextMode.APPEND),
+            lambda: bear.add_text(before, body, mode=TextMode.PREPEND if prepend else TextMode.APPEND),
             f"Updated note {before.id}",
             "note was not modified; is Bear able to run?",
         )
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -268,15 +267,15 @@ def trash(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Move a note to Bear's trash."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
         if note.trashed:
             console.print(f"Note {note.id} is already in the trash")
             return
-        _perform(lambda: ops.trash(db, note), f"Trashed note {note.id}", "note was not trashed; is Bear able to run?")
+        _perform(lambda: bear.trash(note), f"Trashed note {note.id}", "note was not trashed; is Bear able to run?")
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -285,17 +284,15 @@ def archive(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Archive a note."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
         if note.archived:
             console.print(f"Note {note.id} is already archived")
             return
-        _perform(
-            lambda: ops.archive(db, note), f"Archived note {note.id}", "note was not archived; is Bear able to run?"
-        )
+        _perform(lambda: bear.archive(note), f"Archived note {note.id}", "note was not archived; is Bear able to run?")
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -305,19 +302,19 @@ def tag(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Add a tag to a note."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
         if note.has_tag(name):
             console.print(f"Note {note.id} already has tag {name!r}")
             return
         _perform(
-            lambda: ops.add_tag(db, note, name),
+            lambda: bear.add_tag(note, name),
             f"Tagged note {note.id} with {name!r}",
             "tag did not appear; is Bear able to run?",
         )
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -327,9 +324,9 @@ def untag(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Remove a tag from a note (rewrites the note text without the tag marker)."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
         if not note.has_tag(name) or note.text is None:
             console.print(
                 f"[red]Error:[/red] note {note.id} has no tag {name!r} (tags: {', '.join(note.tags) or 'none'})"
@@ -337,15 +334,15 @@ def untag(
             raise typer.Exit(1)
         try:
             _perform(
-                lambda: ops.remove_tag(db, note, name),
+                lambda: bear.remove_tag(note, name),
                 f"Removed tag {name!r} from note {note.id}",
                 "tag was not removed; is Bear able to run?",
             )
-        except ops.TagMarkerNotFound:
+        except TagMarkerNotFound:
             console.print(f"[red]Error:[/red] could not locate the #{name} marker in the note text")
             raise typer.Exit(1) from None
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command("open")
@@ -355,12 +352,12 @@ def open_note(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Open a note in the Bear app."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
+        bear.open(note, new_window=new_window)
     finally:
-        db.close()
-    actions.open_note(note.id, new_window=new_window)
+        bear.close()
     console.print(f"Opened note {note.id} in Bear")
 
 
@@ -384,16 +381,16 @@ def attach(
             f"{MAX_ATTACH_BYTES} bytes (the file is passed base64-encoded through a URL)"
         )
         raise typer.Exit(1)
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
         _perform(
-            lambda: ops.attach_file(db, note, file.name, base64.b64encode(data).decode()),
+            lambda: bear.attach_file(note, file.name, base64.b64encode(data).decode()),
             f"Attached {file.name} to note {note.id}",
             "attachment did not appear; is Bear able to run?",
         )
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -403,19 +400,19 @@ def rename(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Change a note's title (first line), keeping the body."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        note = _require_note(db, note_id)
+        note = _require_note(bear, note_id)
         if note.text is None:
             console.print(f"[red]Error:[/red] note {note.id} is encrypted; cannot rename")
             raise typer.Exit(1)
         _perform(
-            lambda: ops.rename(db, note, new_title),
+            lambda: bear.rename(note, new_title),
             f"Renamed note {note.id} to {new_title!r}",
             "title did not change; is Bear able to run?",
         )
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -429,16 +426,16 @@ def replace(
     if body is None:
         console.print("[red]Error:[/red] provide --text or pipe content on stdin")
         raise typer.Exit(2)
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        before = _require_note(db, note_id)
+        before = _require_note(bear, note_id)
         _perform(
-            lambda: ops.add_text(db, before, body, mode=ops.TextMode.REPLACE),
+            lambda: bear.add_text(before, body, mode=TextMode.REPLACE),
             f"Replaced body of note {before.id}",
             "note was not modified; is Bear able to run?",
         )
     finally:
-        db.close()
+        bear.close()
 
 
 @note_app.command()
@@ -457,21 +454,18 @@ def search(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Search notes by title, tags, and content."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        notes = db.list_notes(
-            limit=None,
+        results = bear.search(
+            query,
+            fuzzy=fuzzy,
+            min_score=min_score,
             tag=tag_filter,
             include_trashed=trashed,
             include_archived=archived,
-        )
+        )[:limit]
     finally:
-        db.close()
-
-    if fuzzy:
-        results = search_notes(notes, query, min_score=min_score)[:limit]
-    else:
-        results = naive_search(notes, query)[:limit]
+        bear.close()
 
     if fmt is OutputFormat.json:
         payload = [

@@ -23,8 +23,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, LoadingIndicator, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
 
-from bearkit import actions, ops
-from bearkit.db import DEFAULT_DB_PATH, BearDB, Note
+from bearkit import Bear, BearWriteError, TagMarkerNotFound, TextMode, actions
+from bearkit.db import DEFAULT_DB_PATH, Note
 from bearkit.search import SearchResult, naive_search, search_notes
 from bearkit.secrets import ScanReport, scan_notes
 
@@ -461,11 +461,8 @@ class BearUI(App):
     @work(thread=True, group="refresh")
     def _refresh_note(self, note_id: str) -> None:
         """Re-read one note after a write; far cheaper than a full reload."""
-        db = BearDB(self.db_path)
-        try:
-            fresh = db.get_note(note_id)
-        finally:
-            db.close()
+        with Bear(self.db_path) as bear:
+            fresh = bear.get_note(note_id)
         kept = [f for f in self.scan.findings if f.note_id != note_id]
         if fresh is None or not self._in_current_view(fresh):
             self.notes = [n for n in self.notes if n.id != note_id]
@@ -481,12 +478,9 @@ class BearUI(App):
     @work(exclusive=True, thread=True, group="rehydrate")
     def _rehydrate(self) -> None:
         """Reload the current view from the database - also catches edits made in Bear."""
-        db = BearDB(self.db_path)
-        try:
+        with Bear(self.db_path) as bear:
             only = {"archive": "archived", "trash": "trashed"}.get(self.view)
-            notes = db.list_notes(limit=None, tag=self.tag_filter, only=only)
-        finally:
-            db.close()
+            notes = bear.list_notes(limit=None, tag=self.tag_filter, only=only)
         self.notes = notes
         self.call_from_thread(self._apply_scan, scan_notes(notes))
 
@@ -742,22 +736,22 @@ class BearUI(App):
 
     @work(thread=True)
     def _save_note(self, note: Note, new_text: str) -> None:
-        fresh = self._attempt(lambda db: ops.add_text(db, note, new_text, mode=ops.TextMode.REPLACE_ALL))
+        fresh = self._attempt(lambda bear: bear.add_text(note, new_text, mode=TextMode.REPLACE_ALL))
         self._after_write(note.id, fresh, "Saved to Bear", "Save")
 
-    def _attempt(self, operation: Callable[[BearDB], Note]) -> Note | None:
-        """Run a verified write against a fresh db handle; None if Bear didn't apply it."""
-        with BearDB(self.db_path) as db:
+    def _attempt(self, operation: Callable[[Bear], Note]) -> Note | None:
+        """Run a verified write against a fresh connection; None if Bear didn't apply it."""
+        with Bear(self.db_path) as bear:
             try:
-                return operation(db)
-            except ops.BearWriteError:
+                return operation(bear)
+            except BearWriteError:
                 return None
 
     @work(thread=True)
     def _create_note(self, text: str) -> None:
         head, _, body = text.partition("\n")
         title = head.lstrip("# ").strip() or "Untitled"
-        created = self._attempt(lambda db: ops.create_note(db, title, body.strip() or None))
+        created = self._attempt(lambda bear: bear.create_note(title, body.strip() or None))
         if created is not None:
             self.notes.insert(0, created)
             self.call_from_thread(self._run_filter, self.search_query)
@@ -769,11 +763,11 @@ class BearUI(App):
     @work(thread=True)
     def _tag_note(self, note: Note, tag: str, add: bool) -> None:
         if add:
-            fresh = self._attempt(lambda db: ops.add_tag(db, note, tag))
+            fresh = self._attempt(lambda bear: bear.add_tag(note, tag))
         else:
             try:
-                fresh = self._attempt(lambda db: ops.remove_tag(db, note, tag))
-            except ops.TagMarkerNotFound:
+                fresh = self._attempt(lambda bear: bear.remove_tag(note, tag))
+            except TagMarkerNotFound:
                 self.call_from_thread(self.notify, f"Note has no tag {tag!r}", severity="warning")
                 return
         message = f"Tagged with {tag!r}" if add else f"Removed tag {tag!r}"
@@ -795,7 +789,7 @@ class BearUI(App):
 
     @work(thread=True)
     def _file_away_worker(self, note: Note, operation: str) -> None:
-        fresh = self._attempt(lambda db: ops.trash(db, note) if operation == "trash" else ops.archive(db, note))
+        fresh = self._attempt(lambda bear: bear.trash(note) if operation == "trash" else bear.archive(note))
         if fresh is not None:
             # Selection moves to the note that takes the removed one's place.
             index = next((i for i, n in enumerate(self.shown) if n.id == note.id), None)

@@ -12,11 +12,11 @@ from rich.table import Table
 from bearcli.cli.common import (
     DbPathOption,
     OutputFormat,
-    _open_db,
+    _open_bear,
     console,
     tag_app,
 )
-from bearkit import ops
+from bearkit import BearWriteError
 from bearkit.db import DEFAULT_DB_PATH
 
 
@@ -32,11 +32,11 @@ def tags(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """List all tags with their note counts."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        all_tags = db.list_tags(include_empty=include_empty)
+        all_tags = bear.list_tags(include_empty=include_empty)
     finally:
-        db.close()
+        bear.close()
 
     if fmt is OutputFormat.json:
         print(json.dumps([{"tag": t, "notes": c} for t, c in all_tags], indent=2, ensure_ascii=False))
@@ -61,20 +61,20 @@ def rename_tag(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Rename a tag across all notes."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        existing = {t.lower() for t, _ in db.list_tags()}
+        existing = {t.lower() for t, _ in bear.list_tags()}
         if name.lower() not in existing:
             console.print(f"[red]Error:[/red] no tag named {name!r}")
             raise typer.Exit(1)
         try:
-            ops.rename_tag(db, name, new_name)
-        except ops.BearWriteError:
+            bear.rename_tag(name, new_name)
+        except BearWriteError:
             console.print("[red]Error:[/red] tag was not renamed; is Bear able to run?")
             raise typer.Exit(1) from None
         console.print(f"Renamed tag {name!r} to {new_name!r}")
     finally:
-        db.close()
+        bear.close()
 
 
 @tag_app.command("delete")
@@ -84,19 +84,19 @@ def delete_tag(
     db_path: DbPathOption = DEFAULT_DB_PATH,
 ) -> None:
     """Delete a tag from every note that has it."""
-    db = _open_db(db_path)
+    bear = _open_bear(db_path)
     try:
-        counts = {t.lower(): c for t, c in db.list_tags(include_empty=True)}
+        counts = {t.lower(): c for t, c in bear.list_tags(include_empty=True)}
         if name.lower() not in counts:
             console.print(f"[red]Error:[/red] no tag named {name!r}")
             raise typer.Exit(1)
         if not yes:
             typer.confirm(f"Remove tag '{name}' from {counts[name.lower()]} note(s)?", abort=True)
         try:
-            ops.delete_tag(db, name)
-        except ops.BearWriteError:
+            bear.delete_tag(name)
+        except BearWriteError:
             console.print("[red]Error:[/red] tag was not deleted; is Bear able to run?")
             raise typer.Exit(1) from None
         console.print(f"Deleted tag {name!r}")
     finally:
-        db.close()
+        bear.close()
