@@ -886,7 +886,7 @@ def stats(
         print(json.dumps(data, indent=2, ensure_ascii=False))
         return
 
-    table = Table(box=box.ROUNDED, show_header=False)
+    table = Table(box=box.ROUNDED, show_header=False, width=44)
     table.add_column(style="bold")
     table.add_column(justify="right")
     table.add_row("Notes", str(data["notes"]))
@@ -901,14 +901,14 @@ def stats(
     console.print(table)
 
     if data["top_tags"]:
-        tag_table = Table(box=box.ROUNDED, header_style="bold")
+        tag_table = Table(box=box.ROUNDED, header_style="bold", width=44)
         tag_table.add_column("Top tags", style="cyan")
         tag_table.add_column("Notes", justify="right")
         for entry in data["top_tags"]:
             tag_table.add_row(str(entry["tag"]), str(entry["notes"]))
         console.print(tag_table)
 
-    year_table = Table(box=box.ROUNDED, header_style="bold")
+    year_table = Table(box=box.ROUNDED, header_style="bold", width=44)
     year_table.add_column("Created", style="cyan")
     year_table.add_column("Notes", justify="right")
     for year, count in data["notes_by_year"].items():
