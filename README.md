@@ -73,7 +73,7 @@ bearcli stats                                # counts, words, top tags, notes pe
 
 `bearcli ui` is a full Bear client in the terminal. Press `?` for the key map.
 
-![bearcli ui](docs/tui.svg)
+![bearcli ui](https://raw.githubusercontent.com/michel-tricot/bearcli/main/docs/tui.svg)
 
 ### Search
 
