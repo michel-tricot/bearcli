@@ -19,6 +19,14 @@ built in the open.
 
 ---
 
+- **Search & browse** - fuzzy or exact, filters for tags, dates, and status
+- **Write, verified** - create, append, tag, archive; every change confirmed via the Bear app
+- **Terminal UI** - a full Bear client in your shell
+- **Export & git mirror** - self-contained markdown folders, never-stuck `--push`
+- **Secret protection** - offline credential scanning and redaction
+- **Agent-ready** - bundled Claude skill and MCP server (`bearcli mcp install`)
+- **Scriptable** - JSON/TSV output everywhere; Python API via [`bearkit`](https://pypi.org/project/bearkit/)
+
 ## Install
 
 ```sh

@@ -44,6 +44,14 @@
   }
   h1 .accent { color: var(--accent); }
   .tagline { font-size: 20px; color: var(--muted); max-width: 560px; margin: 0 auto; }
+  .features {
+    margin: 18px auto 0; max-width: 640px;
+    display: flex; flex-wrap: wrap; gap: 7px; justify-content: center;
+  }
+  .features span {
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 12px; font: 12.5px var(--mono); color: var(--muted);
+  }
   .badges { margin-top: 18px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
   .badges img { height: 20px; }
   .cta { margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -161,6 +169,17 @@
     <div class="bear">🐻</div>
     <h1><span class="accent">bear</span>cli</h1>
     <p class="tagline">The missing open-source CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes - read, search, export, and manage your notes from the terminal.</p>
+    <div class="features">
+      <span>fuzzy search</span>
+      <span>verified writes</span>
+      <span>terminal UI</span>
+      <span>markdown export</span>
+      <span>git mirror</span>
+      <span>secret redaction</span>
+      <span>MCP + agent skill</span>
+      <span>json/tsv output</span>
+      <span>python library</span>
+    </div>
     <div class="badges">
       <a href="https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml"><img src="https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
       <a href="https://github.com/michel-tricot/bearcli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
