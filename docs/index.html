@@ -304,15 +304,20 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
       <code>bearcli</code> ships an <a href="https://github.com/michel-tricot/bearcli/tree/main/src/bearcli/skills/bear-notes" style="color:var(--accent-soft)">Agent Skill</a>
       that teaches Claude Code (and other skill-aware agents) how to drive the CLI -
       machine-readable output, id prefixes, write verification, and the redact-before-sharing
-      rules. Your agent can answer <em>“what did I write about X?”</em> straight from your notes.
+      rules - and an MCP server (<code>bearcli mcp run</code>, stdio) for Claude Desktop,
+      Cursor, VS Code, and friends, with note content secret-redacted by default. Your agent
+      can answer <em>“what did I write about X?”</em> straight from your notes.
     </p>
-    <div class="install"><span class="p">❯</span> bearcli skills install <span class="c"># bundled with the CLI; skills list / show to inspect</span></div>
+    <div class="install"><span class="p">❯</span> bearcli skills install</div>
+    <div class="install" style="margin-top:8px;"><span class="p">❯</span> bearcli mcp install <span class="c"># claude-desktop, claude-code, cursor, vscode, ...</span></div>
   </section>
 
   <section id="commands">
     <h2>Commands</h2>
     <table>
       <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td><code>bearcli skills list / show / install</code></td><td class="desc">Bundled Agent Skill - inspect it, or install into an agent's skills directory</td></tr>
+      <tr><td><code>bearcli mcp run / install</code></td><td class="desc">MCP server (stdio) - serve notes to Claude Desktop, Cursor, and friends</td></tr>
       <tr><td><code>bearcli note list</code></td><td class="desc">List notes with tag, date, and status filters</td></tr>
       <tr><td><code>bearcli note search</code></td><td class="desc">Search titles, tags, and content - <code style="color:var(--cyan)">--fuzzy</code> for typo tolerance</td></tr>
       <tr><td><code>bearcli note get</code></td><td class="desc">Print a note's markdown, metadata, and attachment paths</td></tr>
