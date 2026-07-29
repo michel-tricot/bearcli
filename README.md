@@ -2,9 +2,8 @@
 
 # 🐻 `bearcli`
 
-**The missing open-source CLI for [Bear](https://bear.app) notes** - read,
-search, export, and manage your notes from the terminal. MIT, hackable, and
-built in the open.
+**The missing open-source CLI for [Bear](https://bear.app) notes.**
+Read, search, export, and manage your notes from the terminal.
 
 [![CI](https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml/badge.svg)](https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -72,14 +71,12 @@ bearcli stats                                # counts, words, top tags, notes pe
 
 ### Terminal UI
 
-`bearcli ui` is a full Bear client in the terminal: the note list with live
-filtering on the left, markdown preview and inline editor on the right.
-`/` search - `enter`/`e` edit (`ctrl+s` saves, with an unsaved-changes
-guard) - `n`/`c` new note - `t`/`T` tag/untag - `o` open in Bear - `a`
-archive - `d` trash - `1`/`2`/`3` notes/archive/trash views - `j`/`k`
-navigation - `?` shows the full key map. Notes with detected secrets get a
-red title, a 🚨 badge, and the secret values highlighted in the preview and
-editor; encrypted notes show 🔒 and keep their content in Bear.
+`bearcli ui` is a full Bear client in the terminal. Live-filtered note list
+on the left, markdown preview and editor on the right. Keys: `/` search,
+`enter`/`e` edit, `ctrl+s` save, `n` new note, `t`/`T` tag/untag, `o` open
+in Bear, `a` archive, `d` trash, `1`/`2`/`3` views, `j`/`k` navigate, `?`
+key map. Notes with detected secrets get a red title, a 🚨 badge, and
+highlighted values. Encrypted notes show 🔒.
 
 ### Search
 
@@ -90,8 +87,8 @@ bearcli search "quarterly planing" --fuzzy   # typo-tolerant, ranked by score
 
 ### Write
 
-Writes go through the Bear app itself (launching it if needed), and every
-change is verified before the command reports success.
+Writes go through the Bear app and are verified before the command reports
+success.
 
 ```sh
 bearcli create "Meeting notes" --text "agenda..." --tag work
@@ -115,30 +112,25 @@ bearcli tag delete old-name                  # across all notes (asks first)
 
 ### Export
 
-Every note becomes a self-contained directory - `<slug>/README.md` plus its
-attachments - with a generated index, so GitHub renders the whole export as a
-browsable tree.
+Every note becomes a directory: `<slug>/README.md` plus attachments. A
+generated index makes the export browsable on GitHub.
 
-Before anything is written, the notes are scanned for potential secrets
-(token formats, key blocks, credential assignments, high-entropy strings);
-findings block the export with a list of the affected notes. Override with
-`--allow-secrets` (export as-is) or `--redact-secrets` (replace each secret
-with a `[redacted: <rule>]` placeholder - notes in Bear are untouched).
+Notes are scanned for secrets before anything is written. Findings block
+the export. Use `--redact-secrets` to export with `[redacted: <rule>]`
+placeholders or `--allow-secrets` to export as-is. Notes in Bear are never
+modified.
 
-> **⚠️ Warning** - detection and redaction are best-effort: a secret that
-> reads like ordinary text (a password written as prose, an account number)
-> will not be caught. Ideally, don't keep secrets in notes at all - use a
-> password manager, or at least Bear's encrypted notes, which never leave
-> the app.
+> **⚠️ Warning**: detection is best-effort. A secret that reads like
+> ordinary text will not be caught. Better: keep secrets in a password
+> manager or in Bear's encrypted notes.
 
 ```sh
 bearcli export ~/bear-backup
 bearcli export ~/bear-backup --sync          # only rewrite notes that changed
 bearcli export ~/bear-backup --redact-secrets  # secrets become [redacted: <rule>]
 
-# Mirror to a git repository (clone it first; use a *private* repo - these are
-# your notes). Bear is the source of truth: remote or manual edits are kept in
-# git history but overwritten in HEAD. Never force-pushes, never gets stuck.
+# Mirror to a private git repo (clone it first). Bear is the source of truth:
+# manual edits stay in history but HEAD always matches Bear. Never gets stuck.
 git clone git@github.com:you/bear-notes.git ~/bear-notes
 bearcli export ~/bear-notes --sync --push
 ```
@@ -153,16 +145,15 @@ bearcli list -f json | jq -r '.[].title'
 bearcli list -f text | cut -f1               # text is: id, modified, tags, status, title
 ```
 
-Dates use ISO format (`2026-07-01` or `2026-07-01T14:30`). The database path
-defaults to Bear's standard location and can be overridden with `--db` or the
-`BEAR_DB_PATH` environment variable. Encrypted notes are listed but their
-content cannot be read. `bearcli --version` prints the installed version.
+Dates are ISO (`2026-07-01` or `2026-07-01T14:30`). Override the database
+path with `--db` or `BEAR_DB_PATH`. Encrypted notes are listed but
+unreadable. `bearcli --version` prints the version.
 
 ## Agent skill
 
 An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
-teaching AI agents (Claude Code, etc.) how to use `bearcli` ships inside the
-package ([source](src/bearcli/skills/bear-notes/SKILL.md)):
+for Claude Code and other agents ships inside the package
+([source](src/bearcli/skills/bear-notes/SKILL.md)):
 
 ```sh
 bearcli skills install               # into ~/.claude/skills/
@@ -175,13 +166,11 @@ Reinstall after upgrading so agents always match the installed CLI.
 
 ## MCP server
 
-`bearcli mcp run` serves your notes to AI apps over the Model Context
-Protocol (stdio): list, read, search, create, edit, tag, archive/trash, and
-open-in-Bear, with the same verified writes as the CLI. Note content is
-secret-redacted by default before it reaches the model.
+`bearcli mcp run` serves your notes to AI apps over MCP (stdio): list,
+read, search, create, edit, tag, archive, open in Bear. Note content is
+secret-redacted by default.
 
-`bearcli mcp install` wires it into your client - pick interactively, or
-name one directly:
+`bearcli mcp install` configures your client:
 
 ```sh
 bearcli mcp install                  # choose from a list
@@ -189,14 +178,13 @@ bearcli mcp install claude-desktop   # or: claude-code, cursor, vscode,
                                      #     windsurf, gemini-cli, zed, codex
 ```
 
-Clients with JSON configs are updated in place (a `.bak` is kept); the rest
-get exact instructions printed. Restart the client afterwards.
+JSON configs are updated in place with a `.bak`. Other clients get exact
+instructions. Restart the client afterwards.
 
 ## Use as a library
 
-The fundamentals ship as their own package on PyPI, `bearkit` - reading
-notes, verified writes, search, and secret detection - with no CLI or TUI
-dependencies (`pip install bearkit`):
+The engine ships separately on PyPI as `bearkit`: reading, search, writes,
+and secret detection. No CLI or TUI dependencies.
 
 ```python
 from bearkit import Bear, BearWriteError

@@ -168,7 +168,7 @@
   <header>
     <div class="bear">🐻</div>
     <h1><span class="accent">bear</span>cli</h1>
-    <p class="tagline">The missing open-source CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes - read, search, export, and manage your notes from the terminal.</p>
+    <p class="tagline">The missing open-source CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes. Read, search, export, and manage your notes from the terminal.</p>
     <div class="features">
       <span>MCP + agent skill</span>
       <span>fuzzy search</span>
@@ -257,44 +257,42 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
     <div class="grid">
       <div class="card">
         <h3>✨ Agent-ready</h3>
-        <p>Ships an <a href="https://github.com/michel-tricot/bearcli/tree/main/src/bearcli/skills/bear-notes" style="color:var(--accent-soft)">Agent Skill</a> for Claude Code and an MCP server (<code>bearcli mcp run</code>) for Claude Desktop, Cursor, and friends - <code>bearcli mcp install</code> wires up your client.</p>
+        <p>An <a href="https://github.com/michel-tricot/bearcli/tree/main/src/bearcli/skills/bear-notes" style="color:var(--accent-soft)">Agent Skill</a> for Claude Code. An MCP server for Claude Desktop, Cursor, and friends. <code>bearcli mcp install</code> wires up your client.</p>
       </div>
       <div class="card">
         <h3>Fuzzy search</h3>
-        <p>Typo-tolerant, ranked search across titles, tags, and note text - or plain case-insensitive matching by default.</p>
+        <p>Typo-tolerant ranked search across titles, tags, and text. Plain substring matching by default.</p>
       </div>
       <div class="card">
         <h3>Git backup &amp; sync</h3>
-        <p><code>--push</code> mirrors your notes to a private repo: only changed notes rewritten, deletions cleaned up, every edit kept in history. Self-converging, never stuck.</p>
+        <p><code>--push</code> mirrors your notes to a private repo. Only changed notes are rewritten. Every edit stays in history. Never gets stuck.</p>
       </div>
       <div class="card">
         <h3>Secret protection</h3>
-        <p>Exports are scanned for credentials first - block, or <code>--redact-secrets</code> to replace them with placeholders. Fully offline.</p>
+        <p>Exports are scanned for credentials first. Block, or redact with <code>--redact-secrets</code>. Fully offline.</p>
       </div>
       <div class="card">
         <h3>Terminal UI</h3>
-        <p><code>bearcli ui</code> is a full Bear client in your shell - live-filtered list, inline markdown editing, tagging with autocompletion.</p>
+        <p>A full Bear client in your shell. Live-filtered list, inline markdown editing, tag autocompletion.</p>
       </div>
       <div class="card">
         <h3>Scriptable</h3>
-        <p>Every listing has <code>json</code> and tab-separated <code>text</code> output, built for <code>jq</code>, <code>cut</code>, and pipes.</p>
+        <p>Every listing has <code>json</code> and tab-separated <code>text</code> output. Built for <code>jq</code>, <code>cut</code>, and pipes.</p>
       </div>
       <div class="card">
         <h3>Open source</h3>
-        <p>MIT licensed, end to end. Read the <a href="https://github.com/michel-tricot/bearcli" style="color:var(--accent-soft)">code</a>, audit what touches your notes, fork it, extend it - no black box between you and your library.</p>
+        <p>MIT licensed, end to end. Read the <a href="https://github.com/michel-tricot/bearcli" style="color:var(--accent-soft)">code</a>, audit it, fork it. No black box between you and your notes.</p>
       </div>
       <div class="card">
         <h3>Python library</h3>
-        <p>The engine ships separately as <a href="https://pypi.org/project/bearkit/" style="color:var(--accent-soft)"><code>bearkit</code></a> - a typed Python API for reading, searching, verified writes, and secret scanning. <code>uv add bearkit</code>.</p>
+        <p>The engine ships separately as <a href="https://pypi.org/project/bearkit/" style="color:var(--accent-soft)"><code>bearkit</code></a>. A typed Python API for reading, searching, writing, and secret scanning.</p>
       </div>
     </div>
     <aside class="callout">
       <strong>⚠️ A note on secrets.</strong>
-      Detection and redaction are best-effort: they catch known token formats,
-      credential assignments, and high-entropy strings, but a secret that reads
-      like ordinary text - a password written as prose, an account number -
-      will not be caught. Ideally, don't keep secrets in notes at all: use a
-      password manager, or Bear's encrypted notes, which never leave the app.
+      Detection is best-effort. A secret that reads like ordinary text will
+      not be caught. Better: keep secrets in a password manager or in Bear's
+      encrypted notes.
     </aside>
   </section>
 
@@ -302,11 +300,10 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
     <h2>✨ For AI agents</h2>
     <p style="color:var(--muted); font-size:15px; margin-bottom:14px;">
       <code>bearcli</code> ships an <a href="https://github.com/michel-tricot/bearcli/tree/main/src/bearcli/skills/bear-notes" style="color:var(--accent-soft)">Agent Skill</a>
-      that teaches Claude Code (and other skill-aware agents) how to drive the CLI -
-      machine-readable output, id prefixes, write verification, and the redact-before-sharing
-      rules - and an MCP server (<code>bearcli mcp run</code>, stdio) for Claude Desktop,
-      Cursor, VS Code, and friends, with note content secret-redacted by default. Your agent
-      can answer <em>“what did I write about X?”</em> straight from your notes.
+      that teaches Claude Code how to drive the CLI. It also ships an MCP server
+      (<code>bearcli mcp run</code>, stdio) for Claude Desktop, Cursor, VS Code, and friends.
+      Note content is secret-redacted by default. Your agent can answer
+      <em>“what did I write about X?”</em> straight from your notes.
     </p>
     <div class="install"><span class="p">❯</span> bearcli skills install</div>
     <div class="install" style="margin-top:8px;"><span class="p">❯</span> bearcli mcp install <span class="c"># claude-desktop, claude-code, cursor, vscode, ...</span></div>
