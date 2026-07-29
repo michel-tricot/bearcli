@@ -69,12 +69,6 @@ bearcli ui                                   # Bear in the terminal: search, edi
 bearcli stats                                # counts, words, top tags, notes per year
 ```
 
-### Terminal UI
-
-`bearcli ui` is a full Bear client in the terminal. Press `?` for the key map.
-
-![bearcli ui](https://raw.githubusercontent.com/michel-tricot/bearcli/main/docs/tui.svg)
-
 ### Search
 
 ```sh
@@ -131,6 +125,12 @@ bearcli export ~/bear-backup --redact-secrets  # secrets become [redacted: <rule
 git clone git@github.com:you/bear-notes.git ~/bear-notes
 bearcli export ~/bear-notes --sync --push
 ```
+
+### Terminal UI
+
+`bearcli ui` is a full Bear client in the terminal. Press `?` for the key map.
+
+![bearcli ui](https://raw.githubusercontent.com/michel-tricot/bearcli/main/docs/tui.svg)
 
 ## Scripting
 
