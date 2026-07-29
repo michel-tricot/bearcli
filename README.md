@@ -49,22 +49,33 @@ bearcli ui                         # full Bear client in the terminal
 
 Commands are grouped under `note` and `tag`.
 
+### Shortcuts
+
+The most common commands are also top-level aliases:
+
+```sh
+bearcli list        # alias for `note list`
+bearcli search      # alias for `note search`
+bearcli get         # alias for `note get`
+bearcli open        # alias for `note open`
+bearcli create      # alias for `note create`
+```
+
 ### Browse & read
 
 ```sh
 bearcli note list                            # 20 most recently modified
-bearcli list                                 # shortcut for `note list`
 bearcli note list --limit 5 --tag work       # filters: tag (incl. nested), dates...
 bearcli note list --modified-after 2026-07-01
 bearcli note list --only pinned              # or: encrypted, trashed, archived
 bearcli note list --all --trashed --archived
 bearcli note list --ids                      # only identifiers, one per line
 
-bearcli get C44D09DC       # shortcut for `note get`; a unique id prefix (4+ chars) works everywhere
-bearcli get C44D09DC-... --meta              # with YAML-style frontmatter
-bearcli get C44D09DC-... -r                  # rewrite attachment refs to absolute paths
-bearcli get C44D09DC-... --redact-secrets    # secrets replaced by placeholders
-bearcli open C44D09DC-...                    # open in the Bear app (shortcut for `note open`)
+bearcli note get C44D09DC                    # a unique id prefix (4+ chars) works everywhere
+bearcli note get C44D09DC-... --meta         # with YAML-style frontmatter
+bearcli note get C44D09DC-... -r             # rewrite attachment refs to absolute paths
+bearcli note get C44D09DC-... --redact-secrets   # secrets replaced by placeholders
+bearcli note open C44D09DC-...               # open in the Bear app
 bearcli ui                                   # Bear in the terminal: search, edit, tag
 bearcli stats                                # counts, words, top tags, notes per year
 ```
@@ -72,8 +83,8 @@ bearcli stats                                # counts, words, top tags, notes pe
 ### Search
 
 ```sh
-bearcli search "invoice" --tag work -n 5     # case-insensitive substring (shortcut for `note search`)
-bearcli search "quarterly planing" --fuzzy   # typo-tolerant, ranked by score
+bearcli note search "invoice" --tag work -n 5   # case-insensitive substring
+bearcli note search "quarterly planing" --fuzzy  # typo-tolerant, ranked by score
 ```
 
 ### Write
@@ -82,10 +93,10 @@ Writes go through the Bear app and are verified before the command reports
 success.
 
 ```sh
-bearcli create "Meeting notes" --text "agenda..." --tag work   # shortcut for `note create`
+bearcli note create "Meeting notes" --text "agenda..." --tag work
 echo "follow-up item" | bearcli note append C44D09DC-...
 bearcli note rename C44D09DC-... "New title"
-bearcli get C44D09DC-... | sed 's/foo/bar/' | bearcli note replace C44D09DC-...
+bearcli note get C44D09DC-... | sed 's/foo/bar/' | bearcli note replace C44D09DC-...
 bearcli note attach C44D09DC-... screenshot.png   # ≤500 KB
 bearcli note archive C44D09DC-...
 bearcli note trash C44D09DC-...
