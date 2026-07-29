@@ -12,7 +12,7 @@ from typing import Annotated
 
 import typer
 
-from bearcli.cli.common import DbPathOption, _open_bear, console, mcp_app
+from bearcli.cli.common import DbPathOption, console, mcp_app
 from bearkit.db import DEFAULT_DB_PATH
 
 
@@ -23,7 +23,6 @@ def run(
     """Serve notes to AI apps over MCP (stdio only). Started by the client, not by hand."""
     from bearcli.mcpserver import run as run_server
 
-    _open_bear(db_path).close()  # fail fast with a clear message if the db is missing
     run_server(db_path)
 
 
