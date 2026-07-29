@@ -21,6 +21,18 @@ def test_install_creates_claude_desktop_config(tmp_path, monkeypatch):
     assert server["args"] == ["mcp", "run"] and Path(server["command"]).name == "bearcli"
 
 
+def test_install_prefers_running_binary_over_path_lookup(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    exe = tmp_path / "bin" / "bearcli"
+    exe.parent.mkdir()
+    exe.write_text("#!/bin/sh\n")
+    monkeypatch.setattr("sys.argv", [str(exe), "mcp", "install", "claude-desktop"])
+    result = runner.invoke(app, ["mcp", "install", "claude-desktop"])
+    assert result.exit_code == 0
+    config = json.loads((tmp_path / DESKTOP_CONFIG).read_text())
+    assert config["mcpServers"]["bear"]["command"] == str(exe)
+
+
 def test_install_merges_and_backs_up(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     path = tmp_path / DESKTOP_CONFIG

@@ -34,6 +34,26 @@ brew install michel-tricot/tap/bearcli   # or: uv tool install bearcli, pipx ins
 
 Or from a clone: `uv sync`, then `uv run bearcli --help`.
 
+### Troubleshooting
+
+The `bearcli` command can conflict with Bear's official CLI if both are
+installed — `which -a bearcli` shows which one your shell picks. To make
+this CLI take precedence, put its install directory first in your PATH:
+
+```sh
+# in your ~/.zshrc or ~/.bashrc
+export PATH="$(brew --prefix)/bin:$PATH"   # brew install
+export PATH="$HOME/.local/bin:$PATH"       # uv tool or pipx install
+```
+
+MCP configs are immune to the conflict: `bearcli mcp install` writes the
+absolute path of the very binary it is run from. If `bearcli` itself
+reaches the wrong tool, call ours by its full path once:
+
+```sh
+"$(brew --prefix)/bin/bearcli" mcp install   # or: ~/.local/bin/bearcli
+```
+
 ## Quick start
 
 ```sh

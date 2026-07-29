@@ -28,7 +28,13 @@ def run(
 
 
 def _bearcli_command() -> str:
-    return shutil.which("bearcli") or sys.argv[0] or "bearcli"
+    # Prefer the binary we are running from: a PATH lookup could find Bear's
+    # official CLI, which shadows ours under the same name. absolute() (not
+    # resolve()) keeps brew's stable bin/ symlink out of the versioned Cellar.
+    exe = Path(sys.argv[0])
+    if exe.name == "bearcli" and exe.is_file():
+        return str(exe.absolute())
+    return shutil.which("bearcli") or "bearcli"
 
 
 @dataclass(frozen=True)
