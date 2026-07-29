@@ -76,8 +76,6 @@ bearcli note get C44D09DC-... --meta         # with YAML-style frontmatter
 bearcli note get C44D09DC-... -r             # rewrite attachment refs to absolute paths
 bearcli note get C44D09DC-... --redact-secrets   # secrets replaced by placeholders
 bearcli note open C44D09DC-...               # open in the Bear app
-bearcli ui                                   # Bear in the terminal: search, edit, tag
-bearcli stats                                # counts, words, top tags, notes per year
 ```
 
 ### Search
@@ -151,6 +149,7 @@ tab-separated `text` built for pipes.
 ```sh
 bearcli list -f json | jq -r '.[].title'
 bearcli list -f text | cut -f1               # text is: id, modified, tags, status, title
+bearcli stats -f json                        # library totals: counts, words, top tags
 ```
 
 Dates are ISO (`2026-07-01` or `2026-07-01T14:30`). Override the database
