@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐻</text></svg>">
-<title>bearcli - the missing CLI for Bear notes</title>
-<meta name="description" content="The missing CLI for Bear notes - read, search, export, and manage your notes from the terminal. Fuzzy search, terminal UI, secret-safe exports.">
+<title>bearcli - the missing open-source CLI for Bear notes</title>
+<meta name="description" content="The missing open-source CLI for Bear notes - read, search, export, and manage your notes from the terminal. Fuzzy search, terminal UI, secret-safe exports. MIT licensed.">
 <style>
   :root {
     --bg: #14100e;
@@ -160,7 +160,7 @@
   <header>
     <div class="bear">🐻</div>
     <h1><span class="accent">bear</span>cli</h1>
-    <p class="tagline">The missing CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes - read, search, export, and manage your notes from the terminal.</p>
+    <p class="tagline">The missing open-source CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes - read, search, export, and manage your notes from the terminal.</p>
     <div class="badges">
       <a href="https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml"><img src="https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
       <a href="https://github.com/michel-tricot/bearcli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
@@ -260,6 +260,14 @@ Exported to <span class="cy">~/bear-notes</span>: <span class="g">3 written</spa
       <div class="card">
         <h3>Scriptable</h3>
         <p>Every listing has <code>json</code> and tab-separated <code>text</code> output, built for <code>jq</code>, <code>cut</code>, and pipes.</p>
+      </div>
+      <div class="card">
+        <h3>Open source</h3>
+        <p>MIT licensed, end to end. Read the <a href="https://github.com/michel-tricot/bearcli" style="color:var(--accent-soft)">code</a>, audit what touches your notes, fork it, extend it - no black box between you and your library.</p>
+      </div>
+      <div class="card">
+        <h3>Python library</h3>
+        <p>The engine ships separately as <a href="https://pypi.org/project/bearkit/" style="color:var(--accent-soft)"><code>bearkit</code></a> - a typed Python API for reading, searching, verified writes, and secret scanning. <code>uv add bearkit</code>.</p>
       </div>
     </div>
     <aside class="callout">

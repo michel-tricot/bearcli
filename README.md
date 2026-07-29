@@ -2,8 +2,9 @@
 
 # 🐻 `bearcli`
 
-**The missing CLI for [Bear](https://bear.app) notes** - read, search, export, and
-manage your notes from the terminal.
+**The missing open-source CLI for [Bear](https://bear.app) notes** - read,
+search, export, and manage your notes from the terminal. MIT, hackable, and
+built in the open.
 
 [![CI](https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml/badge.svg)](https://github.com/michel-tricot/bearcli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
