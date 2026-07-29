@@ -52,6 +52,15 @@
     border: 1px solid var(--border); border-radius: 999px;
     padding: 3px 12px; font: 12.5px var(--mono); color: var(--muted);
   }
+  .features .agent {
+    color: var(--text);
+    border-color: var(--accent);
+    animation: agent-glow 2.6s ease-in-out infinite;
+  }
+  @keyframes agent-glow {
+    0%, 100% { box-shadow: 0 0 0 rgba(224, 101, 79, 0); }
+    50% { box-shadow: 0 0 12px rgba(224, 101, 79, .45); }
+  }
   .badges { margin-top: 18px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
   .badges img { height: 20px; }
   .cta { margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -170,7 +179,7 @@
     <h1><span class="accent">bear</span>cli</h1>
     <p class="tagline">The missing open-source CLI for <a href="https://bear.app" style="color:var(--accent-soft)">Bear</a> notes. Read, search, export, and manage your notes from the terminal.</p>
     <div class="features">
-      <span>MCP + agent skill</span>
+      <span class="agent">✨ MCP + agent skill</span>
       <span>fuzzy search</span>
       <span>terminal UI</span>
       <span>markdown export</span>

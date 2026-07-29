@@ -18,7 +18,7 @@ Read, search, export, and manage your notes from the terminal.
 
 ---
 
-- **Agent-ready** - bundled Claude skill and MCP server (`bearcli mcp install`)
+- ✨ **Agent-ready** - bundled Claude skill and MCP server (`bearcli mcp install`)
 - **Search & browse** - fuzzy or exact, filters for tags, dates, and status
 - **Write** - create, append, tag, archive, straight from the terminal
 - **Terminal UI** - a full Bear client in your shell
