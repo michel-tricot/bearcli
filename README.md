@@ -19,12 +19,12 @@ built in the open.
 
 ---
 
+- **Agent-ready** - bundled Claude skill and MCP server (`bearcli mcp install`)
 - **Search & browse** - fuzzy or exact, filters for tags, dates, and status
 - **Write** - create, append, tag, archive, straight from the terminal
 - **Terminal UI** - a full Bear client in your shell
 - **Export & git mirror** - self-contained markdown folders, never-stuck `--push`
 - **Secret protection** - offline credential scanning and redaction
-- **Agent-ready** - bundled Claude skill and MCP server (`bearcli mcp install`)
 - **Scriptable** - JSON/TSV output everywhere; Python API via [`bearkit`](https://pypi.org/project/bearkit/)
 
 ## Install
