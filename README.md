@@ -20,7 +20,7 @@ built in the open.
 ---
 
 - **Search & browse** - fuzzy or exact, filters for tags, dates, and status
-- **Write, verified** - create, append, tag, archive; every change confirmed via the Bear app
+- **Write** - create, append, tag, archive, straight from the terminal
 - **Terminal UI** - a full Bear client in your shell
 - **Export & git mirror** - self-contained markdown folders, never-stuck `--push`
 - **Secret protection** - offline credential scanning and redaction
