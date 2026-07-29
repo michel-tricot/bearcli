@@ -71,12 +71,9 @@ bearcli stats                                # counts, words, top tags, notes pe
 
 ### Terminal UI
 
-`bearcli ui` is a full Bear client in the terminal. Live-filtered note list
-on the left, markdown preview and editor on the right. Keys: `/` search,
-`enter`/`e` edit, `ctrl+s` save, `n` new note, `t`/`T` tag/untag, `o` open
-in Bear, `a` archive, `d` trash, `1`/`2`/`3` views, `j`/`k` navigate, `?`
-key map. Notes with detected secrets get a red title, a 🚨 badge, and
-highlighted values. Encrypted notes show 🔒.
+`bearcli ui` is a full Bear client in the terminal. Press `?` for the key map.
+
+![bearcli ui](docs/tui.svg)
 
 ### Search
 

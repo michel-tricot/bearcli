@@ -110,9 +110,9 @@ that changes behavior updates the docs in the same commit; do not push and
   `src/bearcli/skills/bear-notes/SKILL.md` (agent-facing guidance and machine-readable
   usage). CI runs `scripts/check_docs.py`, but it only verifies command
   *names* appear — accurate descriptions and examples are on you.
-- TUI keybindings or interactions changed → update the README "Terminal UI"
-  key-map paragraph AND the in-app help (`HELP_ROWS`) AND the key bar
-  (`BROWSE_KEYS_*`/`EDIT_KEYS_*`) so all three agree.
+- TUI keybindings or interactions changed → update the in-app help
+  (`HELP_ROWS`) AND the key bar (`BROWSE_KEYS_*`/`EDIT_KEYS_*`) so both
+  agree (the README shows only the screenshot).
 - TUI appearance changed (layout, colors, indicators, key bar) → regenerate
   the website screenshot: `uv run python scripts/render_tui_demo.py` and
   commit `docs/tui.svg`.
