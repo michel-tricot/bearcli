@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sqlite3
 import subprocess
 from importlib.metadata import version
 from pathlib import Path
@@ -99,9 +100,17 @@ def _check_database(db_path: Path) -> bool:
         _fail(f"Bear database not found at {db_path}")
         console.print("  Launch Bear at least once, or point --db / BEAR_DB_PATH at the database.")
         return False
-    with Bear(db_path) as bear:
-        notes = bear.list_notes(include_trashed=True, include_archived=True)
-        tags = bear.list_tags()
+    try:
+        with Bear(db_path) as bear:
+            notes = bear.list_notes(include_trashed=True, include_archived=True)
+            tags = bear.list_tags()
+    except sqlite3.Error as exc:
+        _fail(f"could not open the Bear database at {db_path} ({exc})")
+        console.print("  If access was denied: System Settings → Privacy & Security → Full Disk Access.")
+        return False
+    except RuntimeError as exc:  # opens fine, but the Bear schema is missing
+        _fail(f"{db_path} does not look like a Bear database ({exc})")
+        return False
     _ok(f"database opens read-only: {len(notes)} notes, {len(tags)} tags")
     return True
 

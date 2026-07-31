@@ -1,6 +1,7 @@
 """`doctor` diagnoses PATH conflicts, database access, and MCP wiring."""
 
 import json
+import sqlite3
 
 from typer.testing import CliRunner
 
@@ -22,6 +23,24 @@ def test_doctor_missing_db_fails(tmp_path, monkeypatch):
     result = runner.invoke(app, ["doctor", "--db", str(tmp_path / "nope.sqlite")])
     assert result.exit_code == 1
     assert "not found" in result.stdout
+
+
+def test_doctor_unopenable_db_fails_cleanly(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("COLUMNS", "400")  # keep long diagnostic lines unwrapped
+    result = runner.invoke(app, ["doctor", "--db", str(tmp_path)])  # a directory: stat ok, open fails
+    assert result.exit_code == 1
+    assert "could not open" in result.stdout
+
+
+def test_doctor_non_bear_db_fails_cleanly(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("COLUMNS", "400")
+    other = tmp_path / "other.sqlite"
+    sqlite3.connect(other).executescript("CREATE TABLE t (x);").close()
+    result = runner.invoke(app, ["doctor", "--db", str(other)])
+    assert result.exit_code == 1
+    assert "does not look like a Bear database" in result.stdout
 
 
 def test_doctor_flags_official_cli_shadowing_ours(populated, tmp_path, monkeypatch):
