@@ -36,6 +36,10 @@ Or from a clone: `uv sync`, then `uv run bearcli --help`.
 
 ### Troubleshooting
 
+`bearcli doctor` checks the whole setup: which binary your PATH picks up,
+Bear app presence, database access, and MCP client wiring — with a fix
+suggested for anything it flags.
+
 The `bearcli` command can conflict with Bear's official CLI if both are
 installed — `which -a bearcli` shows which one your shell picks. To make
 this CLI take precedence, put its install directory first in your PATH:

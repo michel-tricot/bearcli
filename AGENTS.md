@@ -59,7 +59,9 @@ tag, publishes both, and updates the Homebrew tap formula
 `src/bearcli/`:
 - `cli/` — Typer CLI package: `common.py` (apps, output types, shared
   helpers), `notes.py` (the `note` group), `tags.py` (the `tag` group),
-  `export.py`, `misc.py` (stats, ui), `__init__.py` (assembly + top-level
+  `export.py`, `misc.py` (stats, ui), `doctor.py` (setup diagnostics:
+  PATH conflicts with Bear's official CLI, database access, MCP client
+  wiring), `__init__.py` (assembly + top-level
   aliases shown in the "Shortcuts" help panel), `skills.py` (the `skills`
   group serving the bundled agent skill from `src/bearcli/skills/`, which
   ships inside the wheel). All presentation (Rich tables, JSON/text

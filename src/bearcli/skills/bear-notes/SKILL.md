@@ -80,6 +80,9 @@ are found. Prefer re-running with `--redact-secrets`; only use
 - `bearcli ui` is a full-screen interactive app for humans — never launch it
   from an agent; use the commands above instead.
 - `bearcli --version` prints the installed version if you need to check it.
+- `bearcli doctor` diagnoses a broken setup (PATH conflicts with Bear's
+  official CLI, database access, MCP wiring) — run it when commands fail
+  unexpectedly.
 - `bearcli mcp run` is an MCP server (stdio) for AI apps like Claude
   Desktop; `bearcli mcp install <client>` configures a client to use it.
   Neither is something to launch from a shell task.
