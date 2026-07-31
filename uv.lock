@@ -78,11 +78,12 @@ wheels = [
 
 [[package]]
 name = "bearcli"
-version = "1.7.4"
+version = "1.7.5"
 source = { editable = "." }
 dependencies = [
     { name = "bearkit" },
     { name = "fastmcp" },
+    { name = "rich" },
     { name = "textual" },
     { name = "typer" },
 ]
@@ -98,6 +99,7 @@ dev = [
 requires-dist = [
     { name = "bearkit", editable = "packages/bearkit" },
     { name = "fastmcp", specifier = ">=3.4.5" },
+    { name = "rich", specifier = ">=15.0.0" },
     { name = "textual", specifier = ">=8.2.8" },
     { name = "typer", specifier = ">=0.27.0" },
 ]
@@ -111,7 +113,7 @@ dev = [
 
 [[package]]
 name = "bearkit"
-version = "1.7.4"
+version = "1.7.5"
 source = { editable = "packages/bearkit" }
 dependencies = [
     { name = "detect-secrets" },
